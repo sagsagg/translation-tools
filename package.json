@@ -43,7 +43,7 @@
     "vue": "^3.5.18",
     "vue-json-pretty": "^2.5.0",
     "vue-sonner": "^2.0.2",
-    "zod": "^4.0.14"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@iconify-json/radix-icons": "^1.2.2",
