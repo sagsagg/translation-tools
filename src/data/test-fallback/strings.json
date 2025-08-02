@@ -1,0 +1,12 @@
+{
+  "app.welcome": "Welcome to the App",
+  "app.login": "Login",
+  "app.logout": "Logout",
+  "app.settings": "Settings",
+  "app.profile": "Profile",
+  "common.save": "Save",
+  "common.cancel": "Cancel",
+  "common.delete": "Delete",
+  "error.general": "An error occurred",
+  "success.saved": "Successfully saved"
+}

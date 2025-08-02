@@ -1,0 +1,68 @@
+key,english,Chinese simplified,Chinese traditional
+integrations.how-to-configure.stripe.title,Connect with Stripe,连接 Stripe 账户,連接 Stripe 賬戶
+integrations.how-to-configure.stripe.description,"You will be redirected to Stripe to complete the connection. <br /><br /> To connect Aspire with Stripe, <ul><li>Log into your Stripe account.</li><li>Navigate to integrations.</li><li>Find Aspire integration and click on ‘Connect with Aspire’.</li><li>Authenticate yourself with your Aspire login.</li><li>Select the business and allow access to Stripe.</li></ul>",系统将会引导您前往 Stripe 完成连接流程。<br /><br /> 要将 Aspire 与 Stripe 连接，请按照以下步骤操作：<ul> <li>登录您的 Stripe 账户。</li> <li>前往集成页面。</li> <li>找到 Aspire 集成，并点击‘Connect with Aspire’。</li> <li>使用您的 Aspire 登录信息进行身份验证。</li> <li>选择您的公司账户，并授权 Stripe 访问权限。</li> </ul>,系統將會引導您前往 Stripe 完成連接流程。 <br /><br /> 若要將 Aspire 與 Stripe 連接，請依照下列步驟操作：<ul> <li>登入您的 Stripe 賬戶。 </li> <li>前往整合頁面。 </li> <li>找到 Aspire 整合，並點選‘Connect with Aspire’。 </li> <li>使用您的 Aspire 登入信息進行身份驗證。 </li> <li>選擇您的公司賬戶，並授權 Stripe 訪問權限。 </li> </ul>
+integrations.required-role.stripe.description,Only Admin and Finance users can use this integration. Please contact your Admin to upgrade your role.,只有管理员和财务用户可以使用此集成功能。如需升级权限，请联系您的管理员。,只有管理員和財務用戶可以使用此整合功能。如需升級權限，請聯絡您的管理員。
+integrations.connect-app.stripe.title,Connect to Stripe,连接 Stripe ,連接 Stripe
+integrations.stripe.section.0.title,Overview,概览,概覽
+integrations.stripe.section.0.description,"• Available for Singapore businesses with an Aspire SGD account (More coming soon)
+• Users with Admin or Finance roles","• 适用于拥有 Aspire SGD 账户的新加坡企业（即将支持更多地区）
+• 拥有管理员或财务角色的用户","• 適用於擁有 Aspire SGD 賬戶的新加坡企業（即將支持更多地區）
+• 擁有管理者或財務角色的用戶"
+integrations.stripe.section.1.title,Who can use this integration,谁可以使用此集成？,誰可以使用此整合？
+integrations.stripe.section.1.description,"Getting paid just got easier. Connect your Aspire account to Stripe and unlock a faster, more seamless payment experience:
+
+- **Collect payments seamlessly** – Get paid via cards, Apple Pay, Google Pay, & more.
+- **Receive global payments** – Get paid in MYR, PHP, INR, and other currencies directly into your SGD account.
+- **Enjoy faster payouts** – Access your funds within 3 days (subject to approval).
+- **No processing fees for your first $20k** – Automatically applied if you meet the requirements.
+
+Integrate seamlessly with Stripe in just a few simple steps:
+1. Go to “Settings → Receivable settings → Set up Stripe” on Aspire.
+2. Click on “Proceed to set up Stripe” and complete setup on Stripe.","收款变得更简单了。立即将您的 Aspire 账户连接至 Stripe，享受更快捷、更顺畅的收款体验：
+
+-**无缝收款** — 通过卡、Apple Pay、Google Pay 等方式接收付款
+-**接收全球付款** — 以马币、菲律宾比索、印度卢比等多种货币直接收款至您的 SGD 账户。
+-**享受更快捷的提现** — 3 天内即可到账（需经批准）。
+-**首 $20k 免手续费** — 满足条件后将自动应用。
+
+只需几个简单步骤，即可将 Aspire 与 Stripe 无缝集成：
+1. 在 Aspire 中前往“设定 → 收款设定 → Set up Stripe""。
+2. 点击“Proceed to set up Stripe”，并在 Stripe 页面完成设置。
+","收款變得更簡單了。立即將您的 Aspire 賬戶連接至 Stripe，享受更快、更順暢的收款體驗：
+
+-**無縫收款** — 通過卡、Apple Pay、Google Pay 等方式接收付款
+-**接收全球付款** — 以馬幣、菲律賓比索、印度盧比等多種貨幣直接收款至您的 SGD 賬戶。
+-**享受更快速的提現** — 3 天內即可到賬（需經批准）。
+-**首 $20k 免手續費** — 滿足條件後將自動應用。
+
+只需幾個簡單步驟，即可將 Aspire 與 Stripe 無縫整合：
+1. 在 Aspire 中前往“設定 → 收款設定 → Set up Stripe""。
+2. 點選“Proceed to set up Stripe”，並在 Stripe 頁面完成設定。
+"
+integrations.receive-funds.stripe.title.connected,Receive card payments via Stripe,通过 Stripe 接收卡付款,通過 Stripe 接收卡付款
+integrations.receive-funds.stripe.description.connected,Accept card payments easily with invoices or payment links,使用发票或付款链接轻松接收卡付款,使用發票或付款鏈接輕鬆接收卡付款
+integrations.stripe.status.not-connected-or-suspended,Setup integration,设置集成,設定整合
+integrations.stripe.status.connected,Connected,已连接,已連接
+integrations.stripe.status.pending,Connection in progress,连接进行中,連接進行中
+integrations.stripe.status.missing-info,Additional details required,需要补充信息,需要補充信息
+integrations.receive-funds.stripe.title.pending,Receive card payments via Stripe,通过 Stripe 接收卡付款,通過 Stripe 接收卡付款
+integrations.receive-funds.stripe.description.pending,Your Stripe account verification is pending,您的 Stripe 账户验证正在审核中,您的 Stripe 賬戶驗證正在審核中
+integrations.receive-funds.stripe.title.not-connect,Receive card payments via Stripe,通过 Stripe 接收卡付款,通過 Stripe 接收卡付款
+integrations.receive-funds.stripe.description.not-connect,Connect your Stripe account to get started,请连接您的 Stripe 账户以开始使用,請連接您的 Stripe 賬戶以開始使用
+integrations.receive-funds.stripe.title.missing-info,Receive card payments via Stripe,通过 Stripe 接收卡付款,通過 Stripe 接收卡付款
+integrations.receive-funds.stripe.description.missing-info,Your Stripe account requires additional information,您的 Stripe 账户需要补充信息,您的 Stripe 賬戶需要補充訊息
+integrations.receive-funds.stripe.modal.title,Select how you want to receive card payments,请选择您希望如何接收卡付款,請選擇您希望如何接收卡付款
+integrations.receive-funds.stripe.modal.options.invoices,Receive card payments by creating and sharing an invoice,通过创建并分享发票接收卡付款,通過創建並分享發票接收卡付款
+integrations.receive-funds.stripe.modal.options.payment-links,Receive card payments by creating and sharing a payment link,通过创建并分享付款链接接收卡付款,通過創建並分享付款鏈接接收卡付款
+integrations.receive-funds.stripe.modal.preselected.title,We’ve preselected Stripe as a payment method in the next step!,我们已在下一步预先选择 Stripe 作为付款方式！,我們已在下一步預先選擇 Stripe 作為付款方式！
+integrations.receive-funds.stripe.title.not-connected,Receive card payments via Stripe,通过 Stripe 接收卡付款,通過 Stripe 接收卡付款
+integrations.cta.complete-verification,Complete verification,完成验证,完成驗證
+integrations.cta.configure-integration,Configure integration,配置集成,配置整合
+integrations.connect-seamless.modal.stripe.title,Connect your Stripe account to Aspire for seamless payments!,将您的 Stripe 账户连接至 Aspire，享受无缝收款体验！,將您的 Stripe 賬戶連接至 Aspire，享受無縫收款體驗！
+integrations.connect-seamless.modal.stripe.description,"Accept payments via cards, Apple Pay, Google Pay, and other methods for Aspire invoices and payment links. Enjoy faster settlements compared to Stripe's standard process (subject to Stripe's credit review). Check [FAQs]({faqURL}) for more information.",通过卡、Apple Pay、Google Pay 等方式，接受 Aspire 发票和付款链接的付款。相比 Stripe 的标准流程，享受更快速的资金结算（需经 Stripe 信用审核）。查看 [常见问题解答]({faqURL}) 了解更多信息。,通過卡、Apple Pay、Google Pay 等方式，接受 Aspire 發票和付款鏈接的付款。相較於 Stripe 的標準流程，享有更快速的資金結算（需經 Stripe 信用審核）。請參閱 [常見問題]({faqURL}) 以了解更多信息。
+integrations.connect-seamless.modal.stripe.cta,Proceed to set up Stripe,继续设置 Stripe,繼續設定 Stripe
+integrations.stripe.header.title,Stripe,Stripe,Stripe
+integrations.stripe.header.description,Accept payments for Aspire invoices and payment links,接受 Aspire 发票和付款链接的付款,接受 Aspire 發票和付款鏈接的付款
+integrations.stripe.available-soon-title,Stripe integration will be available on your Aspire app soon!,Stripe 集成功能即将在您的 Aspire 应用上线！,Stripe 整合功能即將在您的 Aspire 應用程式上線！
+integrations.stripe.available-soon-description,"Until then, to connect to Stripe open this feature in your mobile browser.",在此之前，请使用手机浏览器打开此功能以连接 Stripe。,在此之前，請使用手機瀏覽器開啟此功能以連接 Stripe。
+integrations.stripe.button-title-open-in-browser,Open in browser,在浏览器中打开,在瀏覽器中開啟

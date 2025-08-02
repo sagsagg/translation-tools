@@ -1,0 +1,12 @@
+{
+  "app.welcome": "欢迎使用我们的应用程序",
+  "app.login": "登录",
+  "app.logout": "登出",
+  "nav.home": "首页",
+  "nav.about": "关于我们",
+  "nav.contact": "联系我们",
+  "form.submit": "提交",
+  "form.cancel": "取消",
+  "error.general": "发生错误",
+  "success.saved": "保存成功"
+}

@@ -1,0 +1,14 @@
+{
+  "app.welcome": "歡迎",
+  "app.login": "登錄",
+  "app.logout": "登出",
+  "app.settings": "設置",
+  "app.profile": "個人資料",
+  "nav.home": "首頁",
+  "nav.about": "關於",
+  "nav.contact": "聯繫",
+  "form.submit": "提交",
+  "form.cancel": "取消",
+  "error.general": "發生錯誤",
+  "success.saved": "保存成功"
+}

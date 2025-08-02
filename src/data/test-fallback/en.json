@@ -1,0 +1,12 @@
+{
+  "navigation.home": "Home",
+  "navigation.about": "About",
+  "navigation.contact": "Contact",
+  "form.name": "Name",
+  "form.email": "Email",
+  "form.message": "Message",
+  "form.submit": "Submit",
+  "validation.required": "This field is required",
+  "validation.email": "Please enter a valid email",
+  "notification.success": "Operation completed successfully"
+}

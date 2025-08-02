@@ -1,0 +1,14 @@
+{
+  "header.title": "My Application",
+  "header.subtitle": "A powerful translation tool",
+  "menu.file": "File",
+  "menu.edit": "Edit",
+  "menu.view": "View",
+  "menu.help": "Help",
+  "dialog.confirm": "Are you sure?",
+  "dialog.yes": "Yes",
+  "dialog.no": "No",
+  "status.loading": "Loading...",
+  "status.complete": "Complete",
+  "status.error": "Error occurred"
+}

@@ -1,0 +1,15 @@
+{
+  "app.welcome.title": "Welcome to Our App",
+  "app.welcome.message": "This is the English version",
+  "app.login.title": "Login",
+  "app.login.username": "Username",
+  "app.login.password": "Password",
+  "app.navigation.home": "Home",
+  "app.navigation.profile": "Profile",
+  "app.navigation.settings": "Settings",
+  "app.error.general": "An error occurred",
+  "app.success.saved": "Successfully saved",
+  "app.button.save": "Save",
+  "app.button.cancel": "Cancel",
+  "app.form.required": "This field is required"
+}

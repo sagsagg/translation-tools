@@ -1,0 +1,15 @@
+{
+  "app.welcome.title": "Selamat Datang di Aplikasi Kami",
+  "app.welcome.message": "Ini adalah versi bahasa Indonesia",
+  "app.login.title": "Masuk",
+  "app.login.username": "Nama Pengguna",
+  "app.login.password": "Kata Sandi",
+  "app.navigation.home": "Beranda",
+  "app.navigation.profile": "Profil",
+  "app.navigation.settings": "Pengaturan",
+  "app.error.general": "Terjadi kesalahan",
+  "app.success.saved": "Berhasil disimpan",
+  "app.button.save": "Simpan",
+  "app.button.cancel": "Batal",
+  "app.form.required": "Bidang ini wajib diisi"
+}

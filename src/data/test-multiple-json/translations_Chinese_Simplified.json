@@ -1,0 +1,15 @@
+{
+  "app.welcome.title": "欢迎使用我们的应用",
+  "app.welcome.message": "这是简体中文版本",
+  "app.login.title": "登录",
+  "app.login.username": "用户名",
+  "app.login.password": "密码",
+  "app.navigation.home": "首页",
+  "app.navigation.profile": "个人资料",
+  "app.navigation.settings": "设置",
+  "app.error.general": "发生错误",
+  "app.success.saved": "保存成功",
+  "app.button.save": "保存",
+  "app.button.cancel": "取消",
+  "app.form.required": "此字段为必填项"
+}

@@ -1,0 +1,12 @@
+{
+  "app.welcome": "Selamat datang di aplikasi kami",
+  "app.login": "Masuk",
+  "app.logout": "Keluar",
+  "nav.home": "Beranda",
+  "nav.about": "Tentang Kami",
+  "nav.contact": "Kontak",
+  "form.submit": "Kirim",
+  "form.cancel": "Batal",
+  "error.general": "Terjadi kesalahan",
+  "success.saved": "Berhasil disimpan"
+}

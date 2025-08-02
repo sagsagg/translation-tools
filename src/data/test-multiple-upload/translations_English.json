@@ -1,0 +1,14 @@
+{
+  "app.welcome": "Welcome",
+  "app.login": "Login",
+  "app.logout": "Logout",
+  "app.settings": "Settings",
+  "app.profile": "Profile",
+  "nav.home": "Home",
+  "nav.about": "About",
+  "nav.contact": "Contact",
+  "form.submit": "Submit",
+  "form.cancel": "Cancel",
+  "error.general": "An error occurred",
+  "success.saved": "Successfully saved"
+}

@@ -1,0 +1,17 @@
+{
+  "app.welcome.title": "Welcome to JSON",
+  "app.welcome.message": "This is JSON data that should replace CSV data",
+  "app.login.title": "JSON Login",
+  "app.login.username": "JSON Username",
+  "app.login.password": "JSON Password",
+  "app.navigation.home": "JSON Home",
+  "app.navigation.profile": "JSON Profile",
+  "app.navigation.settings": "JSON Settings",
+  "app.error.general": "JSON Error",
+  "app.success.saved": "JSON Success",
+  "app.button.save": "JSON Save",
+  "app.button.cancel": "JSON Cancel",
+  "app.form.required": "JSON Required Field",
+  "json.specific.key": "This key only exists in JSON",
+  "json.another.key": "Another JSON-only key"
+}

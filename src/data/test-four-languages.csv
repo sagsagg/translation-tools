@@ -1,0 +1,21 @@
+key,english,indonesian,Chinese simplified,Chinese traditional
+app.welcome.title,Welcome,Selamat datang,欢迎,歡迎
+app.welcome.message,Welcome to our application,Selamat datang di aplikasi kami,欢迎使用我们的应用程序,歡迎使用我們的應用程式
+app.login.title,Login,Masuk,登录,登入
+app.login.username,Username,Nama pengguna,用户名,用戶名
+app.login.password,Password,Kata sandi,密码,密碼
+app.login.submit,Sign In,Masuk,登录,登入
+app.navigation.home,Home,Beranda,首页,首頁
+app.navigation.profile,Profile,Profil,个人资料,個人資料
+app.navigation.settings,Settings,Pengaturan,设置,設定
+app.navigation.logout,Logout,Keluar,退出,登出
+app.error.general,An error occurred,Terjadi kesalahan,发生错误,發生錯誤
+app.error.network,Network error,Kesalahan jaringan,网络错误,網路錯誤
+app.success.saved,Successfully saved,Berhasil disimpan,保存成功,儲存成功
+app.success.updated,Successfully updated,Berhasil diperbarui,更新成功,更新成功
+app.button.save,Save,Simpan,保存,儲存
+app.button.cancel,Cancel,Batal,取消,取消
+app.button.edit,Edit,Edit,编辑,編輯
+app.button.delete,Delete,Hapus,删除,刪除
+app.form.required,This field is required,Bidang ini wajib diisi,此字段为必填项,此欄位為必填
+app.form.invalid,Invalid input,Input tidak valid,输入无效,輸入無效
