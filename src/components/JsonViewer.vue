@@ -71,17 +71,13 @@
           class="vue-json-pretty-custom"
         >
           <!-- Custom key rendering with search highlighting -->
-          <template #renderNodeKey="{ node }">
-            <span v-html="highlightSearchInText(node.key, localSearchQuery)" />
+          <template #renderNodeKey="{ node, defaultKey }">
+            <span v-html="highlightSearchInText(String(defaultKey || node.key || ''), localSearchQuery)" />
           </template>
 
           <!-- Custom value rendering with search highlighting -->
           <template #renderNodeValue="{ node, defaultValue }">
-            <span
-              v-if="typeof node.value === 'string'"
-              v-html="highlightSearchInText(node.value, localSearchQuery)"
-            />
-            <span v-else v-html="defaultValue" />
+            <span v-html="getHighlightedValue(node, defaultValue)" />
           </template>
         </VueJsonPretty>
       </div>
@@ -226,6 +222,8 @@ const filteredData = computed(() => {
   return Object.fromEntries(filteredEntries.value)
 })
 
+
+
 // Dark mode detection (simple approach)
 const isDarkMode = computed(() => {
   return document.documentElement.classList.contains('dark')
@@ -284,6 +282,22 @@ function highlightSearchInText(text: string, searchQuery: string): string {
 
   // Use the existing highlightText utility for consistent highlighting
   return highlightText(text, searchQuery)
+}
+
+// Get highlighted value for vue-json-pretty renderNodeValue slot
+function getHighlightedValue(node: any, defaultValue: any): string {
+  // If it's a string value, apply highlighting
+  if (typeof node.value === 'string') {
+    return highlightSearchInText(node.value, localSearchQuery.value)
+  }
+
+  // If defaultValue is a string, apply highlighting to it
+  if (typeof defaultValue === 'string') {
+    return highlightSearchInText(defaultValue, localSearchQuery.value)
+  }
+
+  // For non-string values, return the default rendering
+  return String(defaultValue || node.value || '')
 }
 
 
