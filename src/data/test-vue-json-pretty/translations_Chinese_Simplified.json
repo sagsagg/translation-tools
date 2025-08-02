@@ -1,0 +1,46 @@
+{
+  "app": {
+    "title": "翻译管理器",
+    "welcome": "欢迎使用我们的应用程序",
+    "description": "高效管理您的翻译"
+  },
+  "navigation": {
+    "home": "首页",
+    "about": "关于我们",
+    "contact": "联系我们",
+    "settings": "设置"
+  },
+  "forms": {
+    "login": {
+      "title": "登录",
+      "username": "用户名",
+      "password": "密码",
+      "submit": "登录",
+      "forgot": "忘记密码？"
+    },
+    "register": {
+      "title": "注册",
+      "email": "电子邮箱",
+      "confirm": "确认密码",
+      "submit": "创建账户"
+    }
+  },
+  "messages": {
+    "success": {
+      "saved": "保存成功",
+      "deleted": "删除成功",
+      "updated": "更新成功"
+    },
+    "errors": {
+      "general": "发生错误",
+      "network": "网络连接失败",
+      "validation": "请检查您的输入"
+    }
+  },
+  "features": [
+    "多语言支持",
+    "实时编辑",
+    "导出功能",
+    "搜索和过滤"
+  ]
+}

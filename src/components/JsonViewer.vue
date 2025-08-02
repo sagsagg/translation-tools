@@ -56,54 +56,20 @@
     <!-- JSON Content -->
     <div class="border rounded-lg overflow-hidden">
       <!-- Tree View -->
-      <div v-if="viewMode === 'tree'" class="p-4 bg-gray-50 dark:bg-gray-900">
-        <div class="space-y-1">
-          <div
-            v-for="[key, value] in filteredEntries"
-            :key="key"
-            class="flex items-start space-x-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-2"
-            :class="{ 'bg-yellow-100 dark:bg-yellow-900': isHighlighted(key, value) }"
-          >
-            <div class="flex-shrink-0 w-4 h-4 mt-0.5">
-              <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zM2 15a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1z" />
-              </svg>
-            </div>
-
-            <div class="flex-1 min-w-0">
-              <div class="flex items-start space-x-2">
-                <span
-                  class="font-mono text-sm font-medium text-blue-600 dark:text-blue-400 flex-shrink-0"
-                  v-html="highlightText(key, localSearchQuery)"
-                />
-                <span class="text-gray-500">:</span>
-                <span
-                  class="text-sm text-gray-900 dark:text-gray-100 break-words"
-                  v-html="highlightText(value, localSearchQuery)"
-                />
-              </div>
-            </div>
-
-            <div v-if="editable" class="flex-shrink-0">
-              <Tooltip>
-                <TooltipTrigger as-child>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    @click="$emit('edit', key, value)"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Edit translation</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-        </div>
+      <div v-if="viewMode === 'tree'" class="p-4 bg-white dark:bg-gray-900">
+        <VueJsonPretty
+          :data="filteredData"
+          :show-length="true"
+          :show-line="true"
+          :show-icon="true"
+          :show-double-quotes="true"
+          :collapsed-node-length="10"
+          :deep="3"
+          :theme="isDarkMode ? 'dark' : 'light'"
+          :height="400"
+          :virtual="Object.keys(filteredData).length > 100"
+          class="vue-json-pretty-custom"
+        />
       </div>
 
       <!-- Formatted/Compact View -->
@@ -156,6 +122,9 @@ import {
 } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
+import VueJsonPretty from 'vue-json-pretty'
+import 'vue-json-pretty/lib/styles.css'
+
 
 import type { TranslationData, MultiLanguageTranslationData } from '@/types'
 import { highlightText } from '@/utils'
@@ -238,14 +207,24 @@ const averageValueLength = computed(() => {
   return Math.round(totalLength / values.length)
 })
 
+// Filtered data for vue-json-pretty
+const filteredData = computed(() => {
+  return Object.fromEntries(filteredEntries.value)
+})
+
+// Dark mode detection (simple approach)
+const isDarkMode = computed(() => {
+  return document.documentElement.classList.contains('dark')
+})
+
 const formattedJson = computed(() => {
-  const filteredData = Object.fromEntries(filteredEntries.value)
+  const data = filteredData.value
 
   let jsonString: string
   if (viewMode.value === 'compact') {
-    jsonString = JSON.stringify(filteredData)
+    jsonString = JSON.stringify(data)
   } else {
-    jsonString = JSON.stringify(filteredData, null, 2)
+    jsonString = JSON.stringify(data, null, 2)
   }
 
   // Apply syntax highlighting
@@ -276,12 +255,7 @@ function syntaxHighlight(json: string): string {
     .replace(/\s/g, '&nbsp;')
 }
 
-function isHighlighted(key: string, value: string): boolean {
-  if (!localSearchQuery.value.trim()) return false
 
-  const query = localSearchQuery.value.toLowerCase()
-  return key.toLowerCase().includes(query) || value.toLowerCase().includes(query)
-}
 
 function toggleExpanded(): void {
   isExpanded.value = !isExpanded.value
@@ -305,3 +279,76 @@ watch(() => props.searchQuery, (newQuery) => {
   localSearchQuery.value = newQuery
 })
 </script>
+
+<style scoped>
+.vue-json-pretty-custom {
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.dark .vue-json-pretty-custom {
+  border-color: #374151;
+}
+
+/* Custom styling for vue-json-pretty */
+:deep(.vjs-tree) {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+:deep(.vjs-tree .vjs-tree__node) {
+  padding: 2px 0;
+}
+
+:deep(.vjs-tree .vjs-tree__node:hover) {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+:deep(.vjs-tree .vjs-key) {
+  color: #1e40af;
+  font-weight: 600;
+}
+
+:deep(.vjs-tree .vjs-value__string) {
+  color: #059669;
+}
+
+:deep(.vjs-tree .vjs-value__number) {
+  color: #dc2626;
+}
+
+:deep(.vjs-tree .vjs-value__boolean) {
+  color: #7c3aed;
+}
+
+:deep(.vjs-tree .vjs-value__null) {
+  color: #6b7280;
+}
+
+/* Dark mode styles */
+.dark :deep(.vjs-tree .vjs-key) {
+  color: #60a5fa;
+}
+
+.dark :deep(.vjs-tree .vjs-value__string) {
+  color: #34d399;
+}
+
+.dark :deep(.vjs-tree .vjs-value__number) {
+  color: #f87171;
+}
+
+.dark :deep(.vjs-tree .vjs-value__boolean) {
+  color: #a78bfa;
+}
+
+.dark :deep(.vjs-tree .vjs-value__null) {
+  color: #9ca3af;
+}
+
+.dark :deep(.vjs-tree .vjs-tree__node:hover) {
+  background-color: rgba(59, 130, 246, 0.2);
+}
+</style>

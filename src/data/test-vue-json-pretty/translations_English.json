@@ -1,0 +1,46 @@
+{
+  "app": {
+    "title": "Translation Manager",
+    "welcome": "Welcome to our application",
+    "description": "Manage your translations efficiently"
+  },
+  "navigation": {
+    "home": "Home",
+    "about": "About Us",
+    "contact": "Contact",
+    "settings": "Settings"
+  },
+  "forms": {
+    "login": {
+      "title": "Login",
+      "username": "Username",
+      "password": "Password",
+      "submit": "Sign In",
+      "forgot": "Forgot Password?"
+    },
+    "register": {
+      "title": "Register",
+      "email": "Email Address",
+      "confirm": "Confirm Password",
+      "submit": "Create Account"
+    }
+  },
+  "messages": {
+    "success": {
+      "saved": "Successfully saved",
+      "deleted": "Successfully deleted",
+      "updated": "Successfully updated"
+    },
+    "errors": {
+      "general": "An error occurred",
+      "network": "Network connection failed",
+      "validation": "Please check your input"
+    }
+  },
+  "features": [
+    "Multi-language support",
+    "Real-time editing",
+    "Export functionality",
+    "Search and filter"
+  ]
+}
