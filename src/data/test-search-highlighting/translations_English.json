@@ -1,0 +1,97 @@
+{
+  "authentication": {
+    "login": {
+      "title": "Login to Your Account",
+      "username": "Username or Email",
+      "password": "Password",
+      "submit": "Sign In",
+      "forgot": "Forgot Password?",
+      "remember": "Remember Me"
+    },
+    "register": {
+      "title": "Create New Account",
+      "email": "Email Address",
+      "confirm": "Confirm Password",
+      "submit": "Create Account",
+      "terms": "I agree to the Terms of Service"
+    },
+    "logout": {
+      "title": "Sign Out",
+      "confirm": "Are you sure you want to logout?",
+      "success": "You have been logged out successfully"
+    }
+  },
+  "navigation": {
+    "main": {
+      "home": "Home",
+      "dashboard": "Dashboard",
+      "profile": "User Profile",
+      "settings": "Account Settings",
+      "help": "Help & Support"
+    },
+    "footer": {
+      "about": "About Us",
+      "contact": "Contact Information",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service",
+      "copyright": "© 2024 Translation Manager"
+    }
+  },
+  "forms": {
+    "validation": {
+      "required": "This field is required",
+      "email": "Please enter a valid email address",
+      "password": "Password must be at least 8 characters",
+      "match": "Passwords do not match",
+      "length": "Text must be between 3 and 50 characters"
+    },
+    "actions": {
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "submit": "Submit Form",
+      "reset": "Reset Form"
+    }
+  },
+  "messages": {
+    "success": {
+      "saved": "Data saved successfully",
+      "deleted": "Item deleted successfully",
+      "updated": "Information updated successfully",
+      "created": "New item created successfully"
+    },
+    "errors": {
+      "general": "An unexpected error occurred",
+      "network": "Network connection failed",
+      "timeout": "Request timed out",
+      "unauthorized": "You are not authorized to perform this action",
+      "notfound": "The requested resource was not found"
+    },
+    "warnings": {
+      "unsaved": "You have unsaved changes",
+      "delete": "This action cannot be undone",
+      "logout": "You will be logged out due to inactivity"
+    }
+  },
+  "features": {
+    "search": {
+      "placeholder": "Search translations...",
+      "results": "Search Results",
+      "noresults": "No results found",
+      "clear": "Clear Search"
+    },
+    "export": {
+      "title": "Export Translations",
+      "format": "Select Format",
+      "download": "Download File",
+      "success": "Export completed successfully"
+    },
+    "import": {
+      "title": "Import Translations",
+      "upload": "Upload File",
+      "validate": "Validate Data",
+      "success": "Import completed successfully"
+    }
+  }
+}

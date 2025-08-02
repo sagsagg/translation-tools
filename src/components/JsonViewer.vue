@@ -69,7 +69,21 @@
           :height="400"
           :virtual="Object.keys(filteredData).length > 100"
           class="vue-json-pretty-custom"
-        />
+        >
+          <!-- Custom key rendering with search highlighting -->
+          <template #renderNodeKey="{ node }">
+            <span v-html="highlightSearchInText(node.key, localSearchQuery)" />
+          </template>
+
+          <!-- Custom value rendering with search highlighting -->
+          <template #renderNodeValue="{ node, defaultValue }">
+            <span
+              v-if="typeof node.value === 'string'"
+              v-html="highlightSearchInText(node.value, localSearchQuery)"
+            />
+            <span v-else v-html="defaultValue" />
+          </template>
+        </VueJsonPretty>
       </div>
 
       <!-- Formatted/Compact View -->
@@ -255,6 +269,23 @@ function syntaxHighlight(json: string): string {
     .replace(/\s/g, '&nbsp;')
 }
 
+// Highlight search text within vue-json-pretty tree view
+function highlightSearchInText(text: string, searchQuery: string): string {
+  if (!searchQuery.trim()) {
+    return text
+  }
+
+  const query = searchQuery.toLowerCase()
+  const lowerText = text.toLowerCase()
+
+  if (!lowerText.includes(query)) {
+    return text
+  }
+
+  // Use the existing highlightText utility for consistent highlighting
+  return highlightText(text, searchQuery)
+}
+
 
 
 function toggleExpanded(): void {
@@ -350,5 +381,40 @@ watch(() => props.searchQuery, (newQuery) => {
 
 .dark :deep(.vjs-tree .vjs-tree__node:hover) {
   background-color: rgba(59, 130, 246, 0.2);
+}
+
+/* Search highlighting styles for tree view */
+:deep(.vjs-tree .highlight) {
+  background-color: #fef08a;
+  color: #92400e;
+  padding: 1px 2px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+.dark :deep(.vjs-tree .highlight) {
+  background-color: #fbbf24;
+  color: #92400e;
+}
+
+/* Enhanced tree view search highlighting */
+:deep(.vjs-tree .vjs-key .highlight) {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.dark :deep(.vjs-tree .vjs-key .highlight) {
+  background-color: #1e3a8a;
+  color: #93c5fd;
+}
+
+:deep(.vjs-tree .vjs-value__string .highlight) {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.dark :deep(.vjs-tree .vjs-value__string .highlight) {
+  background-color: #064e3b;
+  color: #6ee7b7;
 }
 </style>
