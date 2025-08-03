@@ -167,6 +167,24 @@ export interface ValidationWarning {
   key?: string
 }
 
+// Text input types
+export type TextInputFormat = 'json' | 'csv'
+
+export interface TextInputData {
+  content: string
+  format: TextInputFormat
+  isValid: boolean
+  validationResult?: ValidationResult
+}
+
+export interface TextInputResult {
+  success: boolean
+  data?: TranslationData | CSVData | MultiLanguageTranslationData
+  format?: FileFormat
+  error?: string
+  validationResult?: ValidationResult
+}
+
 // File operations
 export interface ExportOptions {
   format: FileFormat

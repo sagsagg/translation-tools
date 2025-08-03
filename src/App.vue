@@ -33,12 +33,12 @@
       <div class="space-y-8">
         <!-- Upload & Language Configuration Section -->
         <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <!-- File Upload Column -->
+          <!-- Input Column -->
           <div class="space-y-4">
             <div class="flex items-center justify-between">
               <div>
                 <div class="flex items-center gap-2">
-                  <h2 class="text-xl font-semibold text-foreground">Upload Files</h2>
+                  <h2 class="text-xl font-semibold text-foreground">Add Translation Data</h2>
                   <SupportedLanguagesDialog>
                     <Button
                       variant="ghost"
@@ -53,7 +53,7 @@
                   </SupportedLanguagesDialog>
                 </div>
                 <p class="text-sm text-muted-foreground">
-                  Upload JSON or CSV translation files to get started
+                  Upload files or paste translation data to get started
                 </p>
               </div>
 
@@ -69,21 +69,51 @@
               </Button>
             </div>
 
-            <FileUploader
-              :multiple="true"
-              @upload="handleFileUpload"
-              @error="handleUploadError"
-              @show-naming-help="handleShowNamingHelp"
-            />
+            <!-- Input Method Tabs -->
+            <Tabs
+              :model-value="inputMethod"
+              @update:model-value="handleInputMethodChange"
+              class="w-full"
+            >
+              <TabsList class="grid w-full grid-cols-2">
+                <TabsTrigger value="file" class="flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  File Upload
+                </TabsTrigger>
+                <TabsTrigger value="text" class="flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Text Input
+                </TabsTrigger>
+              </TabsList>
 
-            <!-- Uploaded Files List -->
-            <UploadedFilesList
-              v-if="uploadedFilesList.length"
-              :files="uploadedFilesList"
-              @remove-file="handleRemoveFile"
-              @view-file="handleViewFile"
-              @clear-all="handleClearAllFiles"
-            />
+              <!-- File Upload Tab Content -->
+              <TabsContent value="file" class="space-y-4 mt-6">
+                <FileUploader
+                  :multiple="true"
+                  @upload="handleFileUpload"
+                  @error="handleUploadError"
+                  @show-naming-help="handleShowNamingHelp"
+                />
+
+                <!-- Uploaded Files List -->
+                <UploadedFilesList
+                  v-if="uploadedFilesList.length"
+                  :files="uploadedFilesList"
+                  @remove-file="handleRemoveFile"
+                  @view-file="handleViewFile"
+                  @clear-all="handleClearAllFiles"
+                />
+              </TabsContent>
+
+              <!-- Text Input Tab Content -->
+              <TabsContent value="text" class="mt-6">
+                <TextInput @process="handleTextInputProcess" />
+              </TabsContent>
+            </Tabs>
           </div>
 
           <!-- Language Configuration Column -->
@@ -246,6 +276,7 @@
 import { ref, computed } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import 'vue-sonner/style.css'
@@ -253,7 +284,6 @@ import 'vue-sonner/style.css'
 import { Info } from 'lucide-vue-next'
 
 import ThemeToggle from '@/components/ThemeToggle.vue'
-import FileUploader from '@/components/FileUploader.vue'
 import LanguageSelector from '@/components/LanguageSelector.vue'
 
 // Async component utilities for conditionally rendered components
@@ -267,6 +297,20 @@ const UploadedFilesList = createAsyncComponent(
     ...asyncComponentConfigs.sheet,
     name: 'UploadedFilesList',
     loadingComponent: () => import('@/components/skeleton/UploadedFilesListSkeleton.vue')
+  }
+)
+const FileUploader = createAsyncComponent(
+  () => import('@/components/FileUploader.vue'),
+  {
+    ...asyncComponentConfigs.sheet,
+    name: 'FileUploader',
+  }
+)
+const TextInput = createAsyncComponent(
+  () => import('@/components/TextInput.vue'),
+  {
+    ...asyncComponentConfigs.sheet,
+    name: 'TextInput',
   }
 )
 
@@ -403,6 +447,7 @@ const currentJSONData = ref<TranslationData | undefined>()
 const currentMultiLanguageJSONData = ref<MultiLanguageTranslationData | undefined>()
 const multipleJSONData = ref<Record<string, TranslationData>>({})
 const currentView = ref<ViewMode>('table')
+const inputMethod = ref<'file' | 'text'>('file')
 const languageOptions = ref({
   generateSeparateFiles: true,
   includeEmptyValues: true,
@@ -681,6 +726,47 @@ function handleUploadError(error: string) {
   })
 }
 
+async function handleTextInputProcess(result: import('@/types').TextInputResult) {
+  if (!result.success) {
+    toast.error('Text input processing failed', {
+      description: result.error || 'Unknown error occurred'
+    })
+    return
+  }
+
+  try {
+    // Process the data based on format
+    if (result.format === 'csv' && result.data) {
+      const csvData = result.data as import('@/types').CSVData
+      const fileUploadResult: import('@/types').FileUploadResult = {
+        success: true,
+        format: 'csv',
+        data: csvData,
+        filename: 'text-input.csv'
+      }
+      await handleFileUpload(fileUploadResult)
+    } else if (result.format === 'json' && result.data) {
+      const jsonData = result.data as import('@/types').TranslationData
+      const fileUploadResult: import('@/types').FileUploadResult = {
+        success: true,
+        format: 'json',
+        data: jsonData,
+        filename: 'text-input.json'
+      }
+      await handleFileUpload(fileUploadResult)
+    }
+
+    toast.success('Text input processed successfully', {
+      description: `${result.format?.toUpperCase()} data loaded successfully`
+    })
+  } catch (error) {
+    console.error('Text input processing error:', error)
+    toast.error('Text input processing failed', {
+      description: error instanceof Error ? error.message : 'Unknown error occurred'
+    })
+  }
+}
+
 function handleShowNamingHelp() {
   // This will trigger the SupportedLanguagesDialog to open
   // We can use a ref to control the dialog state or trigger the button click
@@ -697,6 +783,10 @@ function handleLanguageSelection(selection: LanguageSelection) {
 function handleLanguageOptions(options: LanguageOptions) {
   // Update language options
   languageOptions.value = { ...options }
+}
+
+function handleInputMethodChange(value: string | number) {
+  inputMethod.value = String(value) as 'file' | 'text'
 }
 
 async function exportData(format: 'csv' | 'json') {

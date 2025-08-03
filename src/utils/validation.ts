@@ -2,9 +2,12 @@ import type {
   ValidationResult,
   ValidationError,
   ValidationWarning,
-  TranslationData
+  TranslationData,
+  TextInputFormat,
+  TextInputResult
 } from '@/types'
 import { isValidJSON } from './index'
+import { parseCSV } from './csv'
 
 export function validateJSON(content: string): ValidationResult {
   const errors: ValidationError[] = []
@@ -315,4 +318,173 @@ function findDuplicates<T>(array: T[]): T[] {
   }
 
   return Array.from(duplicates)
+}
+
+// Text input validation functions
+export function validateTextInput(content: string, format: TextInputFormat): ValidationResult {
+  if (!content.trim()) {
+    return {
+      isValid: false,
+      errors: [{
+        type: 'structure',
+        message: 'Content cannot be empty'
+      }],
+      warnings: []
+    }
+  }
+
+  switch (format) {
+    case 'json':
+      return validateJSON(content)
+    case 'csv':
+      return validateCSVText(content)
+    default:
+      return {
+        isValid: false,
+        errors: [{
+          type: 'structure',
+          message: 'Invalid format specified'
+        }],
+        warnings: []
+      }
+  }
+}
+
+export function processTextInput(content: string, format: TextInputFormat): TextInputResult {
+  const validationResult = validateTextInput(content, format)
+
+  if (!validationResult.isValid) {
+    return {
+      success: false,
+      error: validationResult.errors[0]?.message || 'Invalid content',
+      validationResult
+    }
+  }
+
+  try {
+    switch (format) {
+      case 'json': {
+        const jsonData = JSON.parse(content)
+        return {
+          success: true,
+          data: jsonData,
+          format: 'json',
+          validationResult
+        }
+      }
+      case 'csv': {
+        try {
+          const csvData = parseCSV(content)
+          return {
+            success: true,
+            data: csvData,
+            format: 'csv',
+            validationResult
+          }
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to parse CSV',
+            validationResult
+          }
+        }
+      }
+      default:
+        return {
+          success: false,
+          error: 'Unsupported format',
+          validationResult
+        }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Processing failed',
+      validationResult
+    }
+  }
+}
+
+function validateCSVText(content: string): ValidationResult {
+  const errors: ValidationError[] = []
+  const warnings: ValidationWarning[] = []
+
+  // Basic CSV structure validation
+  const lines = content.trim().split('\n')
+
+  if (lines.length < 2) {
+    errors.push({
+      type: 'structure',
+      message: 'CSV must have at least a header row and one data row'
+    })
+    return { isValid: false, errors, warnings }
+  }
+
+  // Check header row
+  const headerLine = lines[0].trim()
+  if (!headerLine) {
+    errors.push({
+      type: 'structure',
+      message: 'CSV header row cannot be empty'
+    })
+    return { isValid: false, errors, warnings }
+  }
+
+  // Parse header to check for Key column
+  const headers = headerLine.split(',').map(h => h.trim().replace(/^["']|["']$/g, ''))
+
+  if (!headers.includes('Key')) {
+    errors.push({
+      type: 'missing',
+      message: 'CSV must have a "Key" column'
+    })
+  }
+
+  if (headers.length < 2) {
+    errors.push({
+      type: 'missing',
+      message: 'CSV must have at least one language column in addition to the Key column'
+    })
+  }
+
+  // Check for duplicate headers
+  const duplicateHeaders = findDuplicates(headers)
+  if (duplicateHeaders.length > 0) {
+    errors.push({
+      type: 'duplicate',
+      message: `Duplicate column headers: ${duplicateHeaders.join(', ')}`
+    })
+  }
+
+  // Validate data rows
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim()
+    if (!line) continue // Skip empty lines
+
+    const columns = line.split(',').map(c => c.trim().replace(/^["']|["']$/g, ''))
+
+    if (columns.length !== headers.length) {
+      errors.push({
+        type: 'structure',
+        message: `Row ${i + 1} has ${columns.length} columns, expected ${headers.length}`,
+        line: i + 1
+      })
+    }
+
+    // Check for empty key
+    const keyIndex = headers.indexOf('Key')
+    if (keyIndex >= 0 && !columns[keyIndex]) {
+      warnings.push({
+        type: 'empty_value',
+        message: `Row ${i + 1} has empty key`,
+        key: `row_${i + 1}`
+      })
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings
+  }
 }

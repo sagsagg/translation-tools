@@ -7,7 +7,7 @@ describe('App', () => {
   it('mounts renders properly', () => {
     const wrapper = mount(App)
     expect(wrapper.text()).toContain('Convert Translation')
-    expect(wrapper.text()).toContain('Upload Files')
+    expect(wrapper.text()).toContain('Add Translation Data')
     expect(wrapper.text()).toContain('Language Configuration')
   })
 })

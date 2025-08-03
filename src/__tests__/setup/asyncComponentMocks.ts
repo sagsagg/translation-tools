@@ -7,21 +7,14 @@ import { vi } from 'vitest'
 
 // Mock the async component utilities
 vi.mock('@/utils/asyncComponents', () => ({
-  createAsyncComponent: vi.fn(async (loader, options) => {
-    // In tests, load the component synchronously by calling the loader
-    try {
-      const componentModule = await loader()
-      // Handle both ES module default exports and direct component exports
-      const component = (componentModule as { default?: unknown }).default ?? componentModule
-      return component
-    } catch (error) {
-      // Fallback to a simple mock if loading fails
-      return {
-        name: options?.name || 'MockAsyncComponent',
-        template: `<div data-testid="mock-${options?.name?.toLowerCase() || 'async-component'}">Mock ${options?.name || 'AsyncComponent'}</div>`,
-        props: ['data', 'csvData', 'jsonData', 'multiLanguageJsonData', 'searchQuery', 'editable', 'showActions', 'defaultView'],
-        emits: ['export', 'edit-row', 'delete-row', 'edit-json', 'sort', 'view-change', 'edit', 'confirm', 'cancel']
-      }
+  createAsyncComponent: vi.fn((_loader, options) => {
+    // In tests, return a synchronous mock component instead of loading async
+    // This prevents the "Component is missing template or render function: Promise" warning
+    return {
+      name: options?.name || 'MockAsyncComponent',
+      template: `<div data-testid="mock-${options?.name?.toLowerCase() || 'async-component'}">Mock ${options?.name || 'AsyncComponent'}</div>`,
+      props: ['data', 'csvData', 'jsonData', 'multiLanguageJsonData', 'searchQuery', 'editable', 'showActions', 'defaultView', 'files', 'open', 'originalKey', 'translationKey'],
+      emits: ['export', 'edit-row', 'delete-row', 'edit-json', 'sort', 'view-change', 'edit', 'confirm', 'cancel', 'update:open', 'remove-file', 'view-file', 'clear-all', 'process']
     }
   }),
 
