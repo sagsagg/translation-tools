@@ -243,8 +243,7 @@ function parseCSVRecords(content: string): string[][] {
   let inQuotes = false
   let recordStarted = false
 
-  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-    const line = lines[lineIndex]
+  for (const line of lines) {
 
     for (let i = 0; i < line.length; i++) {
       const char = line[i]

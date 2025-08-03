@@ -66,7 +66,7 @@ export class ConversionEngine {
    */
   static downloadJSON(
     data: TranslationData,
-    filename: string = 'translations.json'
+    filename = 'translations.json'
   ): void {
     const jsonString = JSON.stringify(data, null, 2)
     const blob = new Blob([jsonString], { type: 'application/json' })
@@ -78,7 +78,7 @@ export class ConversionEngine {
    */
   static downloadMultipleJSON(
     translations: Record<string, TranslationData>,
-    baseFilename: string = 'translations'
+    baseFilename = 'translations'
   ): void {
     Object.entries(translations).forEach(([languageCode, data]) => {
       const humanReadableName = getFileNameFromLanguageCode(languageCode)
@@ -92,7 +92,7 @@ export class ConversionEngine {
    */
   static downloadCSV(
     csvContent: string,
-    filename: string = 'translations.csv'
+    filename = 'translations.csv'
   ): void {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     saveAs(blob, filename)
@@ -157,7 +157,7 @@ export class ConversionEngine {
   static getConversionPreview(
     sourceData: TranslationData | CSVData,
     options: ConversionOptions,
-    maxRows: number = 10
+    maxRows = 10
   ): string {
     try {
       if (options.sourceFormat === 'json' && options.targetFormat === 'csv') {
@@ -222,7 +222,7 @@ export class ConversionEngine {
   /**
    * Get supported conversion paths
    */
-  static getSupportedConversions(): Array<{ from: string; to: string; description: string }> {
+  static getSupportedConversions(): { from: string; to: string; description: string }[] {
     return [
       {
         from: 'json',

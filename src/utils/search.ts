@@ -16,6 +16,7 @@ export interface SearchableItem {
 
 export class SearchEngine {
   private fuse: Fuse<SearchableItem> | null = null
+
   private searchableData: SearchableItem[] = []
 
   constructor() {
@@ -42,7 +43,7 @@ export class SearchEngine {
   /**
    * Index JSON translation data for search
    */
-  indexJSONData(data: TranslationData, language: string = 'English'): void {
+  indexJSONData(data: TranslationData, language = 'English'): void {
     this.searchableData = Object.entries(data).map(([key, value], index) => ({
       key,
       value,
@@ -133,7 +134,7 @@ export class SearchEngine {
   /**
    * Search only in keys
    */
-  searchKeys(query: string, threshold: number = 0.3): SearchResult[] {
+  searchKeys(query: string, threshold = 0.3): SearchResult[] {
     return this.search(query, {
       keys: ['key'],
       threshold,
@@ -144,7 +145,7 @@ export class SearchEngine {
   /**
    * Search only in values
    */
-  searchValues(query: string, threshold: number = 0.3): SearchResult[] {
+  searchValues(query: string, threshold = 0.3): SearchResult[] {
     return this.search(query, {
       keys: ['value'],
       threshold,
@@ -155,7 +156,7 @@ export class SearchEngine {
   /**
    * Search within specific language
    */
-  searchInLanguage(query: string, language: string, threshold: number = 0.3): SearchResult[] {
+  searchInLanguage(query: string, language: string, threshold = 0.3): SearchResult[] {
     const languageData = this.searchableData.filter(item => item.language === language)
 
     if (languageData.length === 0) {
@@ -199,7 +200,7 @@ export class SearchEngine {
   /**
    * Get suggestions based on partial input
    */
-  getSuggestions(partialQuery: string, limit: number = 10): string[] {
+  getSuggestions(partialQuery: string, limit = 10): string[] {
     if (!partialQuery.trim()) {
       return []
     }

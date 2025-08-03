@@ -169,7 +169,7 @@ export function useConversion() {
 
   function getConversionPreview(
     sourceData: TranslationData | CSVData,
-    maxRows: number = 10
+    maxRows = 10
   ): string {
     try {
       return ConversionEngine.getConversionPreview(sourceData, conversionOptions, maxRows)

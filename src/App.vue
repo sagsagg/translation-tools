@@ -75,6 +75,14 @@
               @error="handleUploadError"
               @show-naming-help="handleShowNamingHelp"
             />
+
+            <!-- Uploaded Files List -->
+            <UploadedFilesList
+              :files="uploadedFilesList"
+              @remove-file="handleRemoveFile"
+              @view-file="handleViewFile"
+              @clear-all="handleClearAllFiles"
+            />
           </div>
 
           <!-- Language Configuration Column -->
@@ -162,7 +170,7 @@
             :multi-language-json-data="currentMultiLanguageJSONData"
             :editable="true"
             @export="exportData"
-            @edit-row="handleEditRow"
+            @edit-row="handleEditRowCSV"
             @edit-json="handleEditJSON"
             @view-change="handleViewChange"
           />
@@ -211,6 +219,26 @@
       @confirm="handleConfirmation"
       @cancel="handleCancellation"
     />
+
+    <!-- Edit Translation Dialog -->
+    <EditTranslationDialog
+      v-model:open="isEditDialogOpen"
+      :original-key="currentEditData?.key || ''"
+      :original-value="currentEditData?.value || ''"
+      :language="currentEditData?.language"
+      @save="handleEditSave"
+      @cancel="closeEditDialog"
+    />
+
+    <!-- Delete Confirmation Dialog -->
+    <DeleteConfirmationDialog
+      v-model:open="isDeleteDialogOpen"
+      :translation-key="currentDeleteData?.key || ''"
+      :translation-value="currentDeleteData?.value || ''"
+      :language="currentDeleteData?.language"
+      @delete="handleDeleteConfirm"
+      @cancel="closeDeleteDialog"
+    />
     </div>
   </TooltipProvider>
 </template>
@@ -227,14 +255,18 @@ import { Info } from 'lucide-vue-next'
 
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import FileUploader from '@/components/FileUploader.vue'
+import UploadedFilesList from '@/components/UploadedFilesList.vue'
 import LanguageSelector from '@/components/LanguageSelector.vue'
 import LanguageSelectorSheet from '@/components/LanguageSelectorSheet.vue'
 import DataViewer from '@/components/DataViewer.vue'
 import SupportedLanguagesDialog from '@/components/SupportedLanguagesDialog.vue'
 import ReplaceDataConfirmDialog from '@/components/ReplaceDataConfirmDialog.vue'
+import EditTranslationDialog from '@/components/EditTranslationDialog.vue'
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog.vue'
 import { useMultiLanguage } from '@/composables/useMultiLanguage'
 import { useFileUploadConfirmation } from '@/composables/useFileUploadConfirmation'
-
+import { useFileManagement } from '@/composables/useFileManagement'
+import { useEditDelete } from '@/composables/useEditDelete'
 import { useConversion } from '@/composables/useConversion'
 import { toast } from 'vue-sonner'
 import type {
@@ -245,7 +277,10 @@ import type {
   LanguageSelection,
   CSVRow,
   ViewMode,
-  LanguageOptions
+  LanguageOptions,
+  UploadedFile,
+  EditTranslationData,
+  DeleteTranslationData
 } from '@/types'
 
 // Initialize composables
@@ -274,6 +309,31 @@ const {
   handleConfirmation,
   handleCancellation
 } = useFileUploadConfirmation()
+
+const {
+  uploadedFiles: uploadedFilesList,
+  addFileWithReplaceInfo,
+  addMultipleFiles,
+  removeFile,
+  clearAllFiles
+} = useFileManagement()
+
+const {
+  isEditDialogOpen,
+  isDeleteDialogOpen,
+  currentEditData,
+  currentDeleteData,
+  openEditDialog,
+  closeEditDialog,
+  closeDeleteDialog,
+  editTranslationInData,
+  editTranslationInCSV,
+  editTranslationInMultiLanguage,
+  deleteTranslationFromData,
+  deleteTranslationFromCSV,
+  deleteTranslationFromMultiLanguage,
+  validateEditData
+} = useEditDelete()
 
 // Local state
 const currentCSVData = ref<CSVData | undefined>()
@@ -383,6 +443,22 @@ async function handleFileUpload(result: FileUploadResult | FileUploadResult[]) {
   }
 
   await processFileResult(result)
+
+  // Track the uploaded file
+  if (result.success) {
+    // Estimate file size (we don't have actual file size here, so estimate)
+    const estimatedSize = result.format === 'json'
+      ? JSON.stringify(result.data).length
+      : (result.data as CSVData).rows.length * 100 // rough estimate
+
+    const { wasReplaced, replacedFile } = addFileWithReplaceInfo(result, estimatedSize)
+
+    if (wasReplaced && replacedFile) {
+      toast.info('File replaced', {
+        description: `Replaced existing file "${replacedFile.name}" with new version`
+      })
+    }
+  }
 }
 
 async function handleMultipleJSONUpload(results: FileUploadResult[]) {
@@ -432,6 +508,12 @@ async function handleMultipleJSONUpload(results: FileUploadResult[]) {
 
     // Load the merged CSV into the multi-language system
     loadFromCSV(mergedCSVData)
+
+    // Track uploaded files
+    const fileSizes = results.map(result =>
+      result.success ? JSON.stringify(result.data).length : 0
+    )
+    addMultipleFiles(results, fileSizes)
 
     toast.success('Multiple JSON files uploaded successfully', {
       description: `Loaded ${successfulUploads.length} language files with ${mergedCSVData.headers.length - 1} languages`
@@ -600,14 +682,19 @@ async function exportData(format: 'csv' | 'json') {
   }
 }
 
-function handleEditRow(row: CSVRow, index: number) {
-  // Handle row editing
-  console.log('Edit row:', row, index)
+function handleEditRowCSV(row: CSVRow, _index: number) {
+  // Handle CSV row editing - extract key and value from row
+  const key = row.Key || ''
+  const firstValueColumn = Object.keys(row).find(k => k !== 'Key')
+  const value = firstValueColumn ? row[firstValueColumn] || '' : ''
+  const language = firstValueColumn
+
+  openEditDialog(key, value, language)
 }
 
 function handleEditJSON(key: string, value: string) {
   // Handle JSON editing
-  console.log('Edit JSON:', key, value)
+  openEditDialog(key, value)
 }
 
 function handleViewChange(view: ViewMode) {
@@ -620,5 +707,151 @@ function clearAllData() {
   currentMultiLanguageJSONData.value = undefined
   multipleJSONData.value = {}
   clearMultiLanguageData()
+  clearAllFiles()
 }
+
+// File management handlers
+function handleRemoveFile(fileId: string) {
+  const result = removeFile(fileId)
+  if (result.success) {
+    // Check if we need to update current data
+    const remainingFiles = uploadedFilesList.value
+
+    if (remainingFiles.length === 0) {
+      // No files left, clear all data
+      clearAllData()
+      toast.success('File removed', {
+        description: 'All data cleared as no files remain'
+      })
+    } else {
+      // Rebuild data from remaining files
+      rebuildDataFromFiles()
+      toast.success('File removed successfully')
+    }
+  } else {
+    toast.error('Failed to remove file', {
+      description: result.error
+    })
+  }
+}
+
+function handleViewFile(file: UploadedFile) {
+  // For now, just show file info in a toast
+  // This could be enhanced with a detailed view modal
+  toast.info(`File: ${file.name}`, {
+    description: `Format: ${file.format.toUpperCase()}, Language: ${file.languageCode || 'N/A'}, Size: ${(file.size / 1024).toFixed(1)}KB`
+  })
+}
+
+function handleClearAllFiles() {
+  clearAllFiles()
+  clearAllData()
+  toast.success('All files cleared')
+}
+
+function rebuildDataFromFiles() {
+  // This function rebuilds the current data from remaining uploaded files
+  const files = uploadedFilesList.value
+
+  if (files.length === 0) {
+    clearAllData()
+    return
+  }
+
+  // Find the most recent file to use as primary data
+  const sortedFiles = [...files].sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime())
+  const primaryFile = sortedFiles[0]
+
+  if (primaryFile.format === 'csv') {
+    currentCSVData.value = primaryFile.data as CSVData
+    currentJSONData.value = undefined
+    currentMultiLanguageJSONData.value = undefined
+  } else if (primaryFile.format === 'json') {
+    const jsonFiles = files.filter(f => f.format === 'json')
+
+    if (jsonFiles.length === 1) {
+      // Single JSON file
+      currentJSONData.value = primaryFile.data as TranslationData
+      currentCSVData.value = undefined
+      currentMultiLanguageJSONData.value = undefined
+    } else {
+      // Multiple JSON files - rebuild multi-language structure
+      const multiLangData: Record<string, TranslationData> = {}
+      jsonFiles.forEach(file => {
+        if (file.languageCode) {
+          multiLangData[file.languageCode] = file.data as TranslationData
+        }
+      })
+
+      currentMultiLanguageJSONData.value = multiLangData
+      currentJSONData.value = undefined
+      currentCSVData.value = undefined
+    }
+  }
+}
+
+// Edit and Delete handlers
+function handleEditSave(editData: EditTranslationData) {
+  const validationError = validateEditData(editData)
+  if (validationError) {
+    toast.error('Validation Error', {
+      description: validationError
+    })
+    return
+  }
+
+  let result
+
+  // Apply edit to the appropriate data source
+  if (currentJSONData.value) {
+    result = editTranslationInData(currentJSONData.value, editData)
+  } else if (currentCSVData.value) {
+    result = editTranslationInCSV(currentCSVData.value, editData)
+  } else if (currentMultiLanguageJSONData.value) {
+    result = editTranslationInMultiLanguage(currentMultiLanguageJSONData.value, editData)
+  } else {
+    toast.error('No data to edit')
+    return
+  }
+
+  if (result.success) {
+    closeEditDialog()
+    toast.success('Translation updated successfully', {
+      description: `Updated "${editData.originalKey}" to "${editData.newKey}"`
+    })
+  } else {
+    toast.error('Failed to update translation', {
+      description: result.error
+    })
+  }
+}
+
+function handleDeleteConfirm(deleteData: DeleteTranslationData) {
+  let result
+
+  // Apply delete to the appropriate data source
+  if (currentJSONData.value) {
+    result = deleteTranslationFromData(currentJSONData.value, deleteData)
+  } else if (currentCSVData.value) {
+    result = deleteTranslationFromCSV(currentCSVData.value, deleteData)
+  } else if (currentMultiLanguageJSONData.value) {
+    result = deleteTranslationFromMultiLanguage(currentMultiLanguageJSONData.value, deleteData)
+  } else {
+    toast.error('No data to delete from')
+    return
+  }
+
+  if (result.success) {
+    closeDeleteDialog()
+    toast.success('Translation deleted successfully', {
+      description: `Deleted "${deleteData.key}"`
+    })
+  } else {
+    toast.error('Failed to delete translation', {
+      description: result.error
+    })
+  }
+}
+
+
 </script>

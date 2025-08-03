@@ -66,7 +66,9 @@ describe('JSON Export Integration', () => {
 
     // Mock the downloadJSON method to capture calls
     const downloadJSONSpy = vi.spyOn(ConversionEngine, 'downloadJSON')
-    downloadJSONSpy.mockImplementation(() => {})
+    downloadJSONSpy.mockImplementation(() => {
+      // Intentionally empty - we just want to spy on calls
+    })
 
     // Export to multiple JSON files
     exportToMultipleJSON('test-translations')

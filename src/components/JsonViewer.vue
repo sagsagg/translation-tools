@@ -246,7 +246,7 @@ const formattedJson = computed(() => {
 function syntaxHighlight(json: string): string {
   // Simple syntax highlighting for JSON
   return json
-    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, (match) => {
       let cls = 'text-gray-900 dark:text-gray-100'
       if (/^"/.test(match)) {
         if (/:$/.test(match)) {
@@ -285,7 +285,7 @@ function highlightSearchInText(text: string, searchQuery: string): string {
 }
 
 // Get highlighted value for vue-json-pretty renderNodeValue slot
-function getHighlightedValue(node: any, defaultValue: any): string {
+function getHighlightedValue(node: { value?: unknown }, defaultValue: unknown): string {
   // If it's a string value, apply highlighting
   if (typeof node.value === 'string') {
     return highlightSearchInText(node.value, localSearchQuery.value)

@@ -115,8 +115,8 @@ export function useFileUpload() {
   async function uploadFiles(files: FileList): Promise<FileUploadResult[]> {
     const results: FileUploadResult[] = []
 
-    for (let i = 0; i < files.length; i++) {
-      const result = await uploadFile(files[i])
+    for (const file of files) {
+      const result = await uploadFile(file)
       results.push(result)
     }
 

@@ -151,7 +151,7 @@ describe('Multi-Language JSON View', () => {
         await csvTableButton.trigger('click')
 
         expect(wrapper.emitted('view-change')).toBeTruthy()
-        const events = wrapper.emitted('view-change') as Array<Array<string>>
+        const events = wrapper.emitted('view-change') as string[][]
         expect(events[events.length - 1]).toEqual(['csv-table'])
       }
     })

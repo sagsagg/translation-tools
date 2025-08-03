@@ -100,7 +100,7 @@ export function jsonToCSV(
 
 export function singleJSONToCSV(
   translationData: TranslationData,
-  languageName: string = 'English'
+  languageName = 'English'
 ): string {
   const headers = ['Key', languageName]
   const rows: string[][] = []

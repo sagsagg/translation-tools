@@ -230,7 +230,7 @@ describe('Dual View Feature', () => {
 
       expect(wrapper.emitted('view-change')).toBeTruthy()
       // Check the last emitted event (after the button click)
-      const events = wrapper.emitted('view-change') as Array<Array<string>>
+      const events = wrapper.emitted('view-change') as string[][]
       expect(events[events.length - 1]).toEqual(['dual'])
     })
 

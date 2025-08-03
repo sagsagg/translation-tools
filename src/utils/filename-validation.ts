@@ -58,7 +58,7 @@ export function validateJSONFilename(filename: string): FilenameValidationResult
  * Validates JSON filename with fallback to English for single file uploads
  * This provides a more user-friendly experience while encouraging proper naming
  */
-export function validateJSONFilenameWithFallback(filename: string, allowFallback: boolean = true): FilenameValidationResult {
+export function validateJSONFilenameWithFallback(filename: string, allowFallback = true): FilenameValidationResult {
   // First try strict validation
   const strictResult = validateJSONFilename(filename)
 

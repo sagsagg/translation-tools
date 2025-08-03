@@ -169,7 +169,7 @@ const {
 
 const fileInput = ref<HTMLInputElement>()
 const isDragOver = ref(false)
-const validationResults = ref<Array<{ type: 'default' | 'destructive'; title: string; message: string }>>([])
+const validationResults = ref<{ type: 'default' | 'destructive'; title: string; message: string }[]>([])
 
 const uploadSuccess = computed(() => lastUploadResult.value?.success === true)
 const uploadError = computed(() => lastUploadResult.value?.success === false)

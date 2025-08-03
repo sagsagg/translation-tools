@@ -234,7 +234,7 @@ export function useMultiLanguage() {
     return result
   }
 
-  function findMissingTranslations(): Array<{ key: string; missingLanguages: string[] }> {
+  function findMissingTranslations(): { key: string; missingLanguages: string[] }[] {
     const allKeys = new Set<string>()
 
     // Collect all unique keys
@@ -242,7 +242,7 @@ export function useMultiLanguage() {
       Object.keys(langData).forEach(key => allKeys.add(key))
     })
 
-    const missing: Array<{ key: string; missingLanguages: string[] }> = []
+    const missing: { key: string; missingLanguages: string[] }[] = []
 
     allKeys.forEach(key => {
       const missingLanguages: string[] = []

@@ -13,13 +13,13 @@ export function useFileUploadConfirmation() {
    * Check if there is existing translation data
    */
   function hasExistingData(
-    currentCSVData: any,
-    currentJSONData: any,
-    translationData: Record<string, any>
+    currentCSVData: unknown,
+    currentJSONData: unknown,
+    translationData: Record<string, unknown>
   ): boolean {
     return !!(
-      currentCSVData || 
-      currentJSONData || 
+      currentCSVData ||
+      currentJSONData ||
       Object.keys(translationData).length > 0
     )
   }
@@ -43,12 +43,12 @@ export function useFileUploadConfirmation() {
     if (dontAskAgain) {
       skipConfirmationForSession.value = true
     }
-    
+
     if (pendingUpload.value) {
       pendingUpload.value.resolve(true)
       pendingUpload.value = null
     }
-    
+
     isConfirmDialogOpen.value = false
   }
 
@@ -60,7 +60,7 @@ export function useFileUploadConfirmation() {
       pendingUpload.value.resolve(false)
       pendingUpload.value = null
     }
-    
+
     isConfirmDialogOpen.value = false
   }
 
@@ -69,9 +69,9 @@ export function useFileUploadConfirmation() {
    */
   async function shouldConfirmUpload(
     result: FileUploadResult | FileUploadResult[],
-    currentCSVData: any,
-    currentJSONData: any,
-    translationData: Record<string, any>
+    currentCSVData: unknown,
+    currentJSONData: unknown,
+    translationData: Record<string, unknown>
   ): Promise<boolean> {
     // Don't show confirmation if no existing data
     if (!hasExistingData(currentCSVData, currentJSONData, translationData)) {
@@ -100,7 +100,7 @@ export function useFileUploadConfirmation() {
     // State
     isConfirmDialogOpen,
     skipConfirmationForSession,
-    
+
     // Methods
     shouldConfirmUpload,
     handleConfirmation,

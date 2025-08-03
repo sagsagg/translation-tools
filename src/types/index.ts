@@ -5,13 +5,9 @@ export interface TranslationEntry {
   language: string
 }
 
-export interface TranslationData {
-  [key: string]: string
-}
+export type TranslationData = Record<string, string>;
 
-export interface MultiLanguageTranslationData {
-  [language: string]: TranslationData
-}
+export type MultiLanguageTranslationData = Record<string, TranslationData>;
 
 // CSV data structure
 export interface CSVRow {
@@ -58,6 +54,50 @@ export interface MultipleJSONUploadResult {
   validFiles: number
   invalidFiles: number
   errors: string[]
+}
+
+// File management types
+export interface UploadedFile {
+  id: string
+  name: string
+  format: FileFormat
+  languageCode?: string
+  uploadedAt: Date
+  size: number
+  data: TranslationData | CSVData
+}
+
+export interface FileRemovalResult {
+  success: boolean
+  removedFileId: string
+  error?: string
+}
+
+// Edit and delete functionality types
+export interface EditTranslationData {
+  originalKey: string
+  originalValue: string
+  newKey: string
+  newValue: string
+  language?: string
+}
+
+export interface DeleteTranslationData {
+  key: string
+  value: string
+  language?: string
+}
+
+export interface EditTranslationResult {
+  success: boolean
+  data?: EditTranslationData
+  error?: string
+}
+
+export interface DeleteTranslationResult {
+  success: boolean
+  data?: DeleteTranslationData
+  error?: string
 }
 
 // Language configuration

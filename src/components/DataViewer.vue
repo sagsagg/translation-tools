@@ -89,6 +89,24 @@
       </div>
     </div>
 
+    <!-- Advanced Search Panel -->
+    <AdvancedSearchPanel
+      v-model:search-query="searchQueryFromComposable"
+      v-model:selected-language="selectedSearchLanguage"
+      v-model:search-mode="searchMode"
+      v-model:search-threshold="searchThreshold"
+      v-model:max-results="maxResults"
+      :search-results="searchResults"
+      :is-searching="isSearching"
+      :search-stats="searchStats"
+      :available-languages="availableLanguages"
+      :suggestions="searchSuggestions"
+      @search="handleSearch"
+      @clear="handleClearSearch"
+      @export="handleExportSearch"
+      @apply-suggestion="handleApplySuggestion"
+    />
+
     <!-- Data Display -->
     <div>
       <!-- Table View -->
@@ -199,8 +217,10 @@ import { ref, computed, watch } from 'vue'
 import DataTable from './DataTable.vue'
 import JsonViewer from './JsonViewer.vue'
 import LanguageMultiSelect from './LanguageMultiSelect.vue'
+import AdvancedSearchPanel from './AdvancedSearchPanel.vue'
 import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow } from '@/types'
 import { csvToJSON, getLanguagesFromCSV } from '@/utils/csv'
+import { useSearch } from '@/composables/useSearch'
 
 interface Props {
   csvData?: CSVData
@@ -230,6 +250,27 @@ const emit = defineEmits<{
 
 const currentView = ref<ViewMode>(props.defaultView)
 const selectedLanguages = ref<string[]>([])
+
+// Initialize search functionality
+const {
+  searchQuery: searchQueryFromComposable,
+  searchResults,
+  isSearching,
+  searchStats,
+  selectedLanguage: selectedSearchLanguage,
+  searchMode,
+  searchThreshold,
+  maxResults,
+  indexJSONData,
+  indexMultiLanguageJSONData,
+  indexCSVData,
+  performSearch,
+  clearSearch,
+  getSuggestions,
+  exportSearchResults
+} = useSearch()
+
+const searchSuggestions = computed(() => getSuggestions(5))
 
 const availableLanguages = computed(() => {
   if (props.multiLanguageJsonData) {
@@ -352,6 +393,56 @@ function setView(view: ViewMode) {
   currentView.value = view
   emit('view-change', view)
 }
+
+// Search handlers
+function handleSearch() {
+  performSearch()
+}
+
+function handleClearSearch() {
+  clearSearch()
+}
+
+function handleExportSearch(format: 'json' | 'csv') {
+  const results = exportSearchResults(format)
+
+  // Create and download file
+  const blob = new Blob([results], {
+    type: format === 'json' ? 'application/json' : 'text/csv'
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `search-results.${format}`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+function handleApplySuggestion(suggestion: string) {
+  searchQueryFromComposable.value = suggestion
+  performSearch()
+}
+
+// Index data for search when it changes
+watch(() => props.jsonData, (newData) => {
+  if (newData) {
+    indexJSONData(newData)
+  }
+}, { immediate: true })
+
+watch(() => props.multiLanguageJsonData, (newData) => {
+  if (newData) {
+    indexMultiLanguageJSONData(newData)
+  }
+}, { immediate: true })
+
+watch(() => props.csvData, (newData) => {
+  if (newData) {
+    indexCSVData(newData)
+  }
+}, { immediate: true })
 
 function handleLanguageSelectionChange(languages: string[]) {
   selectedLanguages.value = languages

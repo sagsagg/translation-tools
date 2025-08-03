@@ -45,7 +45,7 @@ export function useSearch() {
 
   const availableLanguages = computed(() => searchStats.value.languages)
 
-  function indexJSONData(data: TranslationData, language: string = 'English'): void {
+  function indexJSONData(data: TranslationData, language = 'English'): void {
     searchEngine.indexJSONData(data, language)
     updateSearchStats()
   }
@@ -127,7 +127,7 @@ export function useSearch() {
     return searchEngine.getExactMatches(searchQuery.value)
   }
 
-  function getSuggestions(limit: number = 10): string[] {
+  function getSuggestions(limit = 10): string[] {
     if (!searchQuery.value.trim()) {
       return []
     }
