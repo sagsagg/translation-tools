@@ -283,22 +283,33 @@ src/
 │   ├── DataViewer.vue   # Main data display component
 │   ├── DataTable.vue    # Table view component
 │   ├── JsonViewer.vue   # JSON view component
-│   └── FileUploader.vue # File upload component
+│   ├── FileUploader.vue # File upload component
+│   ├── UploadedFilesList.vue # Uploaded files management
+│   └── ReplaceDataConfirmDialog.vue # File replacement confirmation
+├── stores/              # Pinia state management
+│   ├── index.ts         # Store exports and configuration
+│   ├── translation.ts   # Translation data store
+│   ├── language.ts      # Language selection store
+│   ├── files.ts         # File management store
+│   └── ui.ts           # UI state store
 ├── composables/         # Vue composition functions
-│   ├── useEditDelete.ts # Edit/delete operations
-│   ├── useFileManagement.ts # File handling
+│   ├── useMultiLanguage.ts # Multi-language operations
+│   ├── useFileUploadConfirmation.ts # Upload confirmation logic
 │   ├── useSearch.ts     # Search functionality
 │   └── useConversion.ts # Format conversion
 ├── utils/               # Utility functions
 │   ├── csv.ts          # CSV processing
 │   ├── validation.ts   # File validation
-│   └── memoization.ts  # Performance optimization
+│   ├── memoization.ts  # Performance optimization
+│   └── filename-validation.ts # File naming validation
 ├── types/              # TypeScript type definitions
 │   └── index.ts        # Main type exports
 └── __tests__/          # Test files
     ├── components/     # Component tests
     ├── composables/    # Composable tests
-    └── utils/          # Utility tests
+    ├── stores/         # Store tests
+    ├── utils/          # Utility tests
+    └── integration/    # Integration tests
 ```
 
 ### Technology Stack
@@ -315,8 +326,9 @@ src/
 - **vue-json-pretty** - JSON tree visualization
 
 **State Management:**
+- **Pinia** - Modern state management with TypeScript support
 - **Vue Composition API** - Reactive state management
-- **Pinia** (if needed) - State management library
+- **storeToRefs** - Reactive store property extraction for templates
 
 **Development Tools:**
 - **Vitest** - Unit testing framework
@@ -477,10 +489,13 @@ pnpm run lint -- --fix
 ```
 
 #### TypeScript Standards
-- **Strict mode enabled** - No `any` types allowed
-- **Explicit return types** for functions
-- **Interface definitions** for all data structures
+- **Strict mode enabled** - No `any` types or type assertions (`as` keyword) allowed
+- **Explicit return types** for functions and computed properties
+- **Interface definitions** for all data structures from `src/types/index.ts`
 - **Type guards** for runtime type checking
+- **Pinia store typing** - All stores use proper TypeScript with `defineStore`
+- **Reactive property typing** - `storeToRefs` for template reactivity
+- **Zero compilation errors** - `npm run type-check` must pass
 
 #### Vue 3 Standards
 - **Composition API** preferred over Options API
@@ -500,6 +515,9 @@ pnpm run lint -- --fix
 2. **Component Tests** - Vue component behavior
 3. **Integration Tests** - Feature workflow testing
 4. **Performance Tests** - Large dataset handling
+5. **Store Tests** - Pinia store functionality
+6. **Reactivity Tests** - storeToRefs and reactive updates
+7. **File Replacement Tests** - Upload confirmation and clearing logic
 
 #### Before Submitting PR
 ```bash
@@ -621,10 +639,11 @@ if (!validation.isValid) {
 ### Main Architectural Components
 
 #### App.vue - Root Component
-- **File management** state and operations
+- **Pinia store integration** with reactive state management
 - **Global event handling** for edit/delete operations
 - **Dialog management** for confirmations
 - **Export functionality** coordination
+- **File upload confirmation** with clearing logic
 
 #### DataViewer.vue - Core Display Component
 - **View mode switching** (table, JSON, split, dual, csv-table)
@@ -632,25 +651,67 @@ if (!validation.isValid) {
 - **Event forwarding** to parent components
 - **Performance optimization** with memoization
 
+#### Pinia Store Architecture
+
+**useTranslationStore** - Translation Data Management
+```typescript
+export const useTranslationStore = defineStore('translation', () => {
+  // CSV, JSON, and multi-language data state
+  // CRUD operations for all data types
+  // Data validation and transformation
+  // Export functionality
+})
+```
+
+**useFileStore** - File Management
+```typescript
+export const useFileStore = defineStore('files', () => {
+  // Uploaded files tracking with reactive updates
+  // File replacement logic with clearing
+  // Multi-file handling and validation
+  // File statistics and metadata
+})
+```
+
+**useLanguageStore** - Language Configuration
+```typescript
+export const useLanguageStore = defineStore('language', () => {
+  // Selected languages and primary language
+  // Language options and preferences
+  // Multi-language validation
+  // Language-specific operations
+})
+```
+
+**useUIStore** - UI State Management
+```typescript
+export const useUIStore = defineStore('ui', () => {
+  // Dialog states (edit, delete, confirmation)
+  // Input method and view preferences
+  // Current edit/delete data
+  // UI interaction state
+})
+```
+
 #### Composables Architecture
 
-**useEditDelete.ts** - Edit/Delete Operations
+**useMultiLanguage.ts** - Multi-Language Operations
 ```typescript
-export function useEditDelete() {
-  // Dialog state management
-  // CRUD operations for all data types
-  // Validation and error handling
-  // Success/failure feedback
+export function useMultiLanguage() {
+  // Multi-language data processing
+  // Language-specific transformations
+  // Export to multiple formats
+  // Translation statistics
 }
 ```
 
-**useFileManagement.ts** - File Operations
+**useFileUploadConfirmation.ts** - Upload Confirmation Logic
 ```typescript
-export function useFileManagement() {
-  // File upload and validation
-  // Format detection and parsing
-  // Multi-file handling
-  // Error recovery
+export function useFileUploadConfirmation() {
+  // Confirmation dialog management
+  // Existing data detection
+  // User preference handling (don't ask again)
+  // Promise-based confirmation flow
 }
 ```
 
@@ -697,6 +758,72 @@ const debouncedSearch = debounce((query: string) => {
   :show-line="Object.keys(data).length <= 1000"
   :collapsed-node-length="Object.keys(data).length > 1000 ? 5 : 10"
 />
+```
+
+#### Reactivity Implementation with Pinia
+```typescript
+// App.vue - Proper store reactivity
+import { storeToRefs } from 'pinia'
+
+// Extract reactive properties for template usage
+const { uploadedFiles, hasFiles } = storeToRefs(fileStore)
+const { csvData, jsonData, multiLanguageJsonData } = storeToRefs(translationStore)
+const { selectedLanguages, primaryLanguage } = storeToRefs(languageStore)
+
+// Template automatically updates when store state changes
+<UploadedFilesList
+  v-if="hasFiles"
+  :files="uploadedFiles"
+  @remove-file="handleRemoveFile"
+/>
+```
+
+#### File Replacement Logic
+```typescript
+// handleFileUpload in App.vue
+if (!shouldProceed) {
+  return // User cancelled
+}
+
+// Clear existing files to prevent accumulation
+fileStore.clearAllFiles()
+
+// Process new file data
+await processFileResult(result)
+
+// Add new file with replacement info
+const { file, replaced } = fileStore.addFileWithReplaceInfo(result, estimatedSize, true)
+```
+
+#### Pinia Store Development Patterns
+```typescript
+// Store Definition Pattern
+export const useExampleStore = defineStore('example', () => {
+  // State - always use ref() for reactive data
+  const data = ref<ExampleData[]>([])
+  const isLoading = ref(false)
+
+  // Getters - use computed() for derived state
+  const dataCount = computed(() => data.value.length)
+  const hasData = computed(() => data.value.length > 0)
+
+  // Actions - functions that modify state
+  function addData(newData: ExampleData) {
+    data.value.push(newData)
+  }
+
+  function clearData() {
+    data.value = []
+  }
+
+  // Return all reactive properties and functions
+  return { data, isLoading, dataCount, hasData, addData, clearData }
+})
+
+// Component Usage Pattern
+const exampleStore = useExampleStore()
+const { data, hasData, dataCount } = storeToRefs(exampleStore)
+// Note: Actions don't need storeToRefs, use directly: exampleStore.addData()
 ```
 
 ### Type Safety Implementation
@@ -824,9 +951,14 @@ pnpm run build       # Build for production
 pnpm run preview     # Preview production build
 
 # Testing
-pnpm run test:unit           # Run unit tests
+pnpm run test:unit           # Run unit tests (297 tests)
 pnpm run test:unit -- --watch # Watch mode
 pnpm run test:unit -- --coverage # With coverage
+
+# Run specific test categories
+pnpm run test:unit src/__tests__/file-replacement-fix.test.ts
+pnpm run test:unit src/__tests__/reactivity-fix.test.ts
+pnpm run test:unit src/__tests__/file-clearing-on-confirmation.test.ts
 
 # Code Quality
 pnpm run type-check  # TypeScript validation
@@ -854,4 +986,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ using Vue 3, TypeScript, and modern web technologies.**
 
-For questions, issues, or contributions, please visit our [GitHub repository](https://github.com/your-username/convert-translation).
+For questions, issues, or contributions, please visit our [GitHub repository](https://github.com/sagsagg/convert-translation).

@@ -73,6 +73,12 @@ export interface FileRemovalResult {
   error?: string
 }
 
+export interface MultipleFileRemovalResult {
+  success: boolean
+  removedFiles: UploadedFile[]
+  error?: string
+}
+
 // Edit and delete functionality types
 export interface EditTranslationData {
   originalKey: string

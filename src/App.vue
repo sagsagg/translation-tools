@@ -101,8 +101,8 @@
 
                 <!-- Uploaded Files List -->
                 <UploadedFilesList
-                  v-if="uploadedFilesList.length"
-                  :files="uploadedFilesList"
+                  v-if="hasFiles"
+                  :files="uploadedFiles"
                   @remove-file="handleRemoveFile"
                   @view-file="handleViewFile"
                   @clear-all="handleClearAllFiles"
@@ -193,9 +193,9 @@
           </div>
 
           <DataViewer
-            :csv-data="currentCSVData"
-            :json-data="currentJSONData"
-            :multi-language-json-data="currentMultiLanguageJSONData"
+            :csv-data="csvData"
+            :json-data="jsonData"
+            :multi-language-json-data="multiLanguageJsonData"
             :editable="true"
             @export="exportData"
             @edit-row="handleEditRowCSV"
@@ -228,12 +228,9 @@
             <p>&copy; 2025 Convert Translation. Built with Vue 3 + TypeScript.</p>
           </div>
           <div class="flex items-center space-x-4">
-            <span>{{ translationStats.totalLanguages }} languages</span>
+            <span>{{ selectedLanguages.length }} languages</span>
             <span>•</span>
-            <span>{{ translationStats.totalKeys }} keys</span>
-            <span v-if="translationStats.missingTranslations > 0">
-              • {{ translationStats.missingTranslations }} missing
-            </span>
+            <span>{{ translationStore.totalEntries }} keys</span>
           </div>
         </div>
       </div>
@@ -256,7 +253,7 @@
       :original-value="currentEditData?.value || ''"
       :language="currentEditData?.language"
       @save="handleEditSave"
-      @cancel="closeEditDialog"
+      @cancel="uiStore.closeEditDialog"
     />
 
     <!-- Delete Confirmation Dialog -->
@@ -266,14 +263,14 @@
       :translation-value="currentDeleteData?.value || ''"
       :language="currentDeleteData?.language"
       @delete="handleDeleteConfirm"
-      @cancel="closeDeleteDialog"
+      @cancel="uiStore.closeDeleteDialog"
     />
     </div>
   </TooltipProvider>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -299,6 +296,7 @@ const UploadedFilesList = createAsyncComponent(
     loadingComponent: () => import('@/components/skeleton/UploadedFilesListSkeleton.vue')
   }
 )
+// FileUploader - Sheet content is conditionally rendered when opened
 const FileUploader = createAsyncComponent(
   () => import('@/components/FileUploader.vue'),
   {
@@ -306,6 +304,7 @@ const FileUploader = createAsyncComponent(
     name: 'FileUploader',
   }
 )
+// TextInput - Sheet content is conditionally rendered when opened
 const TextInput = createAsyncComponent(
   () => import('@/components/TextInput.vue'),
   {
@@ -370,10 +369,9 @@ const DeleteConfirmationDialog = createAsyncComponent(
     loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
   }
 )
+import { useTranslationStore, useLanguageStore, useFileStore, useUIStore, storeToRefs } from '@/stores'
 import { useMultiLanguage } from '@/composables/useMultiLanguage'
 import { useFileUploadConfirmation } from '@/composables/useFileUploadConfirmation'
-import { useFileManagement } from '@/composables/useFileManagement'
-import { useEditDelete } from '@/composables/useEditDelete'
 import { useConversion } from '@/composables/useConversion'
 import { toast } from 'vue-sonner'
 import type {
@@ -390,12 +388,27 @@ import type {
   DeleteTranslationData
 } from '@/types'
 
-// Initialize composables
+// Initialize Pinia stores
+const translationStore = useTranslationStore()
+const languageStore = useLanguageStore()
+const fileStore = useFileStore()
+const uiStore = useUIStore()
+
+// Extract reactive properties for template usage
+const { uploadedFiles, hasFiles } = storeToRefs(fileStore)
+const { csvData, jsonData, multiLanguageJsonData } = storeToRefs(translationStore)
+const { selectedLanguages, primaryLanguage, languageOptions } = storeToRefs(languageStore)
 const {
-  selectedLanguages,
-  primaryLanguage,
+  inputMethod,
+  isEditDialogOpen,
+  isDeleteDialogOpen,
+  currentEditData,
+  currentDeleteData
+} = storeToRefs(uiStore)
+
+// Initialize remaining composables that don't have store equivalents yet
+const {
   translationData,
-  translationStats,
   updateLanguageSelection,
   loadFromCSV,
   loadFromJSON,
@@ -415,52 +428,27 @@ const {
   handleCancellation
 } = useFileUploadConfirmation()
 
-const {
-  uploadedFiles: uploadedFilesList,
-  addFileWithReplaceInfo,
-  addMultipleFiles,
-  removeFile,
-  clearAllFiles
-} = useFileManagement()
+// Helper function for validation (moved from useEditDelete)
+function validateEditData(editData: EditTranslationData): string | null {
+  if (!editData.newKey || editData.newKey.trim() === '') {
+    return 'Translation key cannot be empty'
+  }
 
-const {
-  isEditDialogOpen,
-  isDeleteDialogOpen,
-  currentEditData,
-  currentDeleteData,
-  openEditDialog,
-  openDeleteDialog,
-  closeEditDialog,
-  closeDeleteDialog,
-  editTranslationInData,
-  editTranslationInCSV,
-  editTranslationInMultiLanguage,
-  deleteTranslationFromData,
-  deleteTranslationFromCSV,
-  deleteTranslationFromMultiLanguage,
-  validateEditData
-} = useEditDelete()
+  if (editData.newKey.includes('.') && editData.newKey.split('.').some(part => part.trim() === '')) {
+    return 'Translation key cannot contain empty segments'
+  }
 
-// Local state
-const currentCSVData = ref<CSVData | undefined>()
-const currentJSONData = ref<TranslationData | undefined>()
-const currentMultiLanguageJSONData = ref<MultiLanguageTranslationData | undefined>()
-const multipleJSONData = ref<Record<string, TranslationData>>({})
-const currentView = ref<ViewMode>('table')
-const inputMethod = ref<'file' | 'text'>('file')
-const languageOptions = ref({
-  generateSeparateFiles: true,
-  includeEmptyValues: true,
-  addLanguagePrefix: true
-})
+  return null
+}
 
-// Computed properties
-const hasData = computed(() => {
-  return currentCSVData.value ||
-         currentJSONData.value ||
-         Object.keys(multipleJSONData.value).length > 0 ||
-         Object.keys(translationData.value).length > 0
-})
+// Local state (now using stores)
+// Translation data is now managed by translationStore
+// Language configuration is now managed by languageStore
+// File management is now managed by fileStore
+// UI state is now managed by uiStore
+
+// Computed properties (now using stores)
+const hasData = computed(() => translationStore.hasData)
 
 // Helper function to get language name from language code
 function getLanguageName(code: string): string {
@@ -525,8 +513,8 @@ async function handleFileUpload(result: FileUploadResult | FileUploadResult[]) {
   // Check if user wants to proceed with upload (show confirmation if needed)
   const shouldProceed = await shouldConfirmUpload(
     result,
-    currentCSVData.value,
-    currentJSONData.value,
+    translationStore.csvData,
+    translationStore.jsonData,
     translationData.value
   )
 
@@ -534,6 +522,10 @@ async function handleFileUpload(result: FileUploadResult | FileUploadResult[]) {
     // User cancelled the upload
     return
   }
+
+  // Clear existing uploaded files to prevent accumulation during confirmation process
+  // This ensures only the most recent file is kept in the uploaded files list
+  fileStore.clearAllFiles()
 
   // Handle array of results (multiple JSON files)
   if (Array.isArray(result)) {
@@ -558,11 +550,11 @@ async function handleFileUpload(result: FileUploadResult | FileUploadResult[]) {
       ? JSON.stringify(result.data).length
       : (result.data as CSVData).rows.length * 100 // rough estimate
 
-    const { wasReplaced, replacedFile } = addFileWithReplaceInfo(result, estimatedSize)
+    const { file, replaced } = fileStore.addFileWithReplaceInfo(result, estimatedSize, true)
 
-    if (wasReplaced && replacedFile) {
+    if (replaced && file) {
       toast.info('File replaced', {
-        description: `Replaced existing file "${replacedFile.name}" with new version`
+        description: `Replaced existing file "${file.name}" with new version`
       })
     }
   }
@@ -587,10 +579,7 @@ async function handleMultipleJSONUpload(results: FileUploadResult[]) {
 
   if (successfulUploads.length > 0) {
     // Clear previous data
-    currentCSVData.value = undefined
-    currentJSONData.value = undefined
-    currentMultiLanguageJSONData.value = undefined
-    multipleJSONData.value = {}
+    translationStore.clearAllData()
 
     // Convert multiple JSON files to CSV structure for table view
     const mergedCSVData = mergeJSONFilesToCSV(successfulUploads)
@@ -599,10 +588,8 @@ async function handleMultipleJSONUpload(results: FileUploadResult[]) {
     const mergedJSONData = createMergedJSONStructure(successfulUploads)
 
     // Store both representations for DataViewer
-    currentCSVData.value = mergedCSVData
-    currentMultiLanguageJSONData.value = mergedJSONData
-    // Clear single JSON data since we have multi-language data
-    currentJSONData.value = undefined
+    translationStore.setCSVData(mergedCSVData)
+    translationStore.setMultiLanguageJSONData(mergedJSONData)
 
     // Also store in multipleJSONData for reference
     const newMultipleData: Record<string, TranslationData> = {}
@@ -611,7 +598,7 @@ async function handleMultipleJSONUpload(results: FileUploadResult[]) {
       // Load into multi-language system
       loadFromJSON(upload.data, upload.languageCode)
     }
-    multipleJSONData.value = newMultipleData
+    translationStore.setMultipleJSONData(newMultipleData)
 
     // Load the merged CSV into the multi-language system
     loadFromCSV(mergedCSVData)
@@ -620,7 +607,7 @@ async function handleMultipleJSONUpload(results: FileUploadResult[]) {
     const fileSizes = results.map(result =>
       result.success ? JSON.stringify(result.data).length : 0
     )
-    addMultipleFiles(results, fileSizes)
+    fileStore.addMultipleFiles(results, fileSizes)
 
     toast.success('Multiple JSON files uploaded successfully', {
       description: `Loaded ${successfulUploads.length} language files with ${mergedCSVData.headers.length - 1} languages`
@@ -648,18 +635,17 @@ async function processFileResult(result: FileUploadResult) {
         throw new Error('Invalid CSV data structure')
       }
 
-      if (csvData.headers.length === 0) {
+      if (!csvData.headers.length) {
         throw new Error('CSV file has no headers')
       }
 
-      if (csvData.rows.length === 0) {
+      if (!csvData.rows.length) {
         throw new Error('CSV file has no data rows')
       }
 
       // Clear previous data and set new CSV data
-      currentJSONData.value = undefined
-      currentMultiLanguageJSONData.value = undefined
-      currentCSVData.value = csvData
+      translationStore.clearAllData()
+      translationStore.setCSVData(csvData)
 
       // Load into multi-language system
       loadFromCSV(csvData)
@@ -682,12 +668,11 @@ async function processFileResult(result: FileUploadResult) {
       }
 
       // Clear previous data and set new JSON data
-      currentCSVData.value = undefined
-      currentMultiLanguageJSONData.value = undefined
-      currentJSONData.value = jsonData
+      translationStore.clearAllData()
+      translationStore.setJSONData(jsonData)
 
       // Determine language code (use fallback if applied, otherwise use primary language)
-      const languageCode = result.languageCode || primaryLanguage.value?.code || 'en'
+      const languageCode = result.languageCode || languageStore.primaryLanguage?.code || 'en'
 
       // Load into multi-language system
       loadFromJSON(jsonData, languageCode)
@@ -777,16 +762,17 @@ function handleShowNamingHelp() {
 }
 
 function handleLanguageSelection(selection: LanguageSelection) {
+  languageStore.updateLanguageSelection(selection)
   updateLanguageSelection(selection)
 }
 
 function handleLanguageOptions(options: LanguageOptions) {
   // Update language options
-  languageOptions.value = { ...options }
+  languageStore.updateLanguageOptions(options)
 }
 
 function handleInputMethodChange(value: string | number) {
-  inputMethod.value = String(value) as 'file' | 'text'
+  uiStore.setInputMethod(String(value) as 'file' | 'text')
 }
 
 async function exportData(format: 'csv' | 'json') {
@@ -795,24 +781,24 @@ async function exportData(format: 'csv' | 'json') {
       if (Object.keys(translationData.value).length > 0) {
         await convertMultipleJSONToCSV(
           translationData.value,
-          selectedLanguages.value,
+          languageStore.selectedLanguages,
           'translations.csv'
         )
         toast.success('CSV exported successfully', {
-          description: `Exported ${selectedLanguages.value.length} languages to CSV`
+          description: `Exported ${languageStore.selectedLanguages.length} languages to CSV`
         })
       } else {
         exportToCSV('translations.csv')
         toast.success('CSV exported successfully')
       }
     } else {
-      if (selectedLanguages.value.length > 1) {
+      if (languageStore.selectedLanguages.length > 1) {
         exportToMultipleJSON('translations')
         toast.success('JSON files exported successfully', {
-          description: `Exported ${selectedLanguages.value.length} separate JSON files`
+          description: `Exported ${languageStore.selectedLanguages.length} separate JSON files`
         })
-      } else if (currentJSONData.value) {
-        const blob = new Blob([JSON.stringify(currentJSONData.value, null, 2)], {
+      } else if (translationStore.jsonData) {
+        const blob = new Blob([JSON.stringify(translationStore.jsonData, null, 2)], {
           type: 'application/json'
         })
         const url = URL.createObjectURL(blob)
@@ -841,7 +827,7 @@ function handleEditRowCSV(row: CSVRow, _index: number) {
   const value = firstValueColumn ? row[firstValueColumn] || '' : ''
   const language = firstValueColumn
 
-  openEditDialog(key, value, language)
+  uiStore.openEditDialog(key, value, language)
 }
 
 function handleDeleteRowCSV(row: CSVRow, _index: number) {
@@ -851,33 +837,30 @@ function handleDeleteRowCSV(row: CSVRow, _index: number) {
   const value = firstValueColumn ? row[firstValueColumn] || '' : ''
   const language = firstValueColumn
 
-  openDeleteDialog(key, value, language)
+  uiStore.openDeleteDialog(key, value, language)
 }
 
 function handleEditJSON(key: string, value: string) {
   // Handle JSON editing
-  openEditDialog(key, value)
+  uiStore.openEditDialog(key, value)
 }
 
 function handleViewChange(view: ViewMode) {
-  currentView.value = view
+  uiStore.setCurrentView(view)
 }
 
 function clearAllData() {
-  currentCSVData.value = undefined
-  currentJSONData.value = undefined
-  currentMultiLanguageJSONData.value = undefined
-  multipleJSONData.value = {}
+  translationStore.clearAllData()
   clearMultiLanguageData()
-  clearAllFiles()
+  fileStore.clearAllFiles()
 }
 
 // File management handlers
 function handleRemoveFile(fileId: string) {
-  const result = removeFile(fileId)
+  const result = fileStore.removeFile(fileId)
   if (result.success) {
     // Check if we need to update current data
-    const remainingFiles = uploadedFilesList.value
+    const remainingFiles = fileStore.uploadedFiles
 
     if (remainingFiles.length === 0) {
       // No files left, clear all data
@@ -906,14 +889,14 @@ function handleViewFile(file: UploadedFile) {
 }
 
 function handleClearAllFiles() {
-  clearAllFiles()
+  fileStore.clearAllFiles()
   clearAllData()
   toast.success('All files cleared')
 }
 
 function rebuildDataFromFiles() {
   // This function rebuilds the current data from remaining uploaded files
-  const files = uploadedFilesList.value
+  const files = fileStore.uploadedFiles
 
   if (files.length === 0) {
     clearAllData()
@@ -925,17 +908,15 @@ function rebuildDataFromFiles() {
   const primaryFile = sortedFiles[0]
 
   if (primaryFile.format === 'csv') {
-    currentCSVData.value = primaryFile.data as CSVData
-    currentJSONData.value = undefined
-    currentMultiLanguageJSONData.value = undefined
+    translationStore.clearAllData()
+    translationStore.setCSVData(primaryFile.data as CSVData)
   } else if (primaryFile.format === 'json') {
     const jsonFiles = files.filter(f => f.format === 'json')
 
     if (jsonFiles.length === 1) {
       // Single JSON file
-      currentJSONData.value = primaryFile.data as TranslationData
-      currentCSVData.value = undefined
-      currentMultiLanguageJSONData.value = undefined
+      translationStore.clearAllData()
+      translationStore.setJSONData(primaryFile.data as TranslationData)
     } else {
       // Multiple JSON files - rebuild multi-language structure
       const multiLangData: Record<string, TranslationData> = {}
@@ -945,9 +926,8 @@ function rebuildDataFromFiles() {
         }
       })
 
-      currentMultiLanguageJSONData.value = multiLangData
-      currentJSONData.value = undefined
-      currentCSVData.value = undefined
+      translationStore.clearAllData()
+      translationStore.setMultiLanguageJSONData(multiLangData)
     }
   }
 }
@@ -965,19 +945,19 @@ function handleEditSave(editData: EditTranslationData) {
   let result
 
   // Apply edit to the appropriate data source
-  if (currentJSONData.value) {
-    result = editTranslationInData(currentJSONData.value, editData)
-  } else if (currentCSVData.value) {
-    result = editTranslationInCSV(currentCSVData.value, editData)
-  } else if (currentMultiLanguageJSONData.value) {
-    result = editTranslationInMultiLanguage(currentMultiLanguageJSONData.value, editData)
+  if (translationStore.hasJSONData) {
+    result = translationStore.editTranslationInJSON(editData)
+  } else if (translationStore.hasCSVData) {
+    result = translationStore.editTranslationInCSV(editData)
+  } else if (translationStore.hasMultiLanguageData) {
+    result = translationStore.editTranslationInMultiLanguage(editData)
   } else {
     toast.error('No data to edit')
     return
   }
 
   if (result.success) {
-    closeEditDialog()
+    uiStore.closeEditDialog()
     toast.success('Translation updated successfully', {
       description: `Updated "${editData.originalKey}" to "${editData.newKey}"`
     })
@@ -992,19 +972,19 @@ function handleDeleteConfirm(deleteData: DeleteTranslationData) {
   let result
 
   // Apply delete to the appropriate data source
-  if (currentJSONData.value) {
-    result = deleteTranslationFromData(currentJSONData.value, deleteData)
-  } else if (currentCSVData.value) {
-    result = deleteTranslationFromCSV(currentCSVData.value, deleteData)
-  } else if (currentMultiLanguageJSONData.value) {
-    result = deleteTranslationFromMultiLanguage(currentMultiLanguageJSONData.value, deleteData)
+  if (translationStore.hasJSONData) {
+    result = translationStore.deleteTranslationFromJSON(deleteData)
+  } else if (translationStore.hasCSVData) {
+    result = translationStore.deleteTranslationFromCSV(deleteData)
+  } else if (translationStore.hasMultiLanguageData) {
+    result = translationStore.deleteTranslationFromMultiLanguage(deleteData)
   } else {
     toast.error('No data to delete from')
     return
   }
 
   if (result.success) {
-    closeDeleteDialog()
+    uiStore.closeDeleteDialog()
     toast.success('Translation deleted successfully', {
       description: `Deleted "${deleteData.key}"`
     })
