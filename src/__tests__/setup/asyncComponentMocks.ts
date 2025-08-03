@@ -45,7 +45,8 @@ vi.mock('@/utils/asyncComponents', () => ({
   }
 }))
 
-// The createAsyncComponent mock above handles DataViewer and AdvancedSearchSheet
+// The createAsyncComponent mock above handles all async components
+// (DataViewer, AdvancedSearchSheet, UploadedFilesList, LanguageSelectorSheet, SupportedLanguagesDialog)
 // by loading them synchronously in tests
 
 // Mock skeleton components

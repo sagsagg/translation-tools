@@ -78,6 +78,7 @@
 
             <!-- Uploaded Files List -->
             <UploadedFilesList
+              v-if="uploadedFilesList.length"
               :files="uploadedFilesList"
               @remove-file="handleRemoveFile"
               @view-file="handleViewFile"
@@ -126,9 +127,6 @@
             </Card>
           </div>
         </section>
-
-
-
         <!-- Data Visualization Section -->
         <section v-if="hasData" class="space-y-4">
           <div class="flex items-center justify-between">
@@ -256,13 +254,41 @@ import { Info } from 'lucide-vue-next'
 
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import FileUploader from '@/components/FileUploader.vue'
-import UploadedFilesList from '@/components/UploadedFilesList.vue'
 import LanguageSelector from '@/components/LanguageSelector.vue'
-import LanguageSelectorSheet from '@/components/LanguageSelectorSheet.vue'
-import SupportedLanguagesDialog from '@/components/SupportedLanguagesDialog.vue'
 
 // Async component utilities for conditionally rendered components
 import { createAsyncComponent, asyncComponentConfigs } from '@/utils/asyncComponents'
+
+// Lazy load components that are conditionally rendered
+// UploadedFilesList - Only renders content when files.length > 0 (v-if="files.length > 0")
+const UploadedFilesList = createAsyncComponent(
+  () => import('@/components/UploadedFilesList.vue'),
+  {
+    ...asyncComponentConfigs.sheet,
+    name: 'UploadedFilesList',
+    loadingComponent: () => import('@/components/skeleton/UploadedFilesListSkeleton.vue')
+  }
+)
+
+// LanguageSelectorSheet - Sheet content is conditionally rendered when opened
+const LanguageSelectorSheet = createAsyncComponent(
+  () => import('@/components/LanguageSelectorSheet.vue'),
+  {
+    ...asyncComponentConfigs.sheet,
+    name: 'LanguageSelectorSheet',
+    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
+  }
+)
+
+// SupportedLanguagesDialog - Dialog content is conditionally rendered when opened
+const SupportedLanguagesDialog = createAsyncComponent(
+  () => import('@/components/SupportedLanguagesDialog.vue'),
+  {
+    ...asyncComponentConfigs.dialog,
+    name: 'SupportedLanguagesDialog',
+    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
+  }
+)
 
 // Lazy load DataViewer since it's only rendered when hasData is true (v-if="hasData")
 const DataViewer = createAsyncComponent(
