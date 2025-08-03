@@ -332,6 +332,7 @@ import { Input } from '@/components/ui/input'
 import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow } from '@/types'
 import { csvToJSON, getLanguagesFromCSV } from '@/utils/csv'
 import { useSearch } from '@/composables/useSearch'
+import { memoizedTransforms, createCacheKey } from '@/utils/memoization'
 
 interface Props {
   csvData?: CSVData
@@ -387,7 +388,7 @@ const hasResults = computed(() => searchResults.value.length > 0)
 
 const availableLanguages = computed(() => {
   if (props.multiLanguageJsonData) {
-    return Object.keys(props.multiLanguageJsonData).sort()
+    return memoizedTransforms.getLanguages(props.multiLanguageJsonData)
   }
   if (props.csvData) {
     return getLanguagesFromCSV(props.csvData)
@@ -397,12 +398,7 @@ const availableLanguages = computed(() => {
 
 const totalEntries = computed(() => {
   if (props.multiLanguageJsonData) {
-    // Count unique translation keys across all languages
-    const allKeys = new Set<string>()
-    for (const languageData of Object.values(props.multiLanguageJsonData)) {
-      Object.keys(languageData).forEach(key => allKeys.add(key))
-    }
-    return allKeys.size
+    return memoizedTransforms.countKeys(props.multiLanguageJsonData)
   }
   if (props.csvData) {
     return props.csvData.rows.length
@@ -413,7 +409,23 @@ const totalEntries = computed(() => {
   return 0
 })
 
+// Simple cache for display data
+const displayDataCache = new Map<string, { csv: CSVData; json: TranslationData | MultiLanguageTranslationData }>()
+
 const displayData = computed(() => {
+  // Create cache key from current props and selected languages
+  const cacheKey = createCacheKey(
+    props.multiLanguageJsonData,
+    props.csvData,
+    props.jsonData,
+    selectedLanguages.value
+  )
+
+  // Return cached result if available
+  if (displayDataCache.has(cacheKey)) {
+    return displayDataCache.get(cacheKey)!
+  }
+
   let csv: CSVData
   let json: TranslationData | MultiLanguageTranslationData
 
@@ -436,47 +448,18 @@ const displayData = computed(() => {
       json = props.multiLanguageJsonData
     }
 
-    // Convert multi-language JSON to CSV for table view
+    // Convert multi-language JSON to CSV for table view using memoized function
     const languages = selectedLanguages.value.length > 0 && selectedLanguages.value.length < availableLanguages.value.length
       ? selectedLanguages.value.filter(lang => props.multiLanguageJsonData && lang in props.multiLanguageJsonData).sort()
       : Object.keys(props.multiLanguageJsonData).sort()
 
-    const allKeys = new Set<string>()
-
-    // Collect all unique keys from selected languages
-    for (const language of languages) {
-      if (props.multiLanguageJsonData[language]) {
-        Object.keys(props.multiLanguageJsonData[language]).forEach(key => allKeys.add(key))
-      }
-    }
-
-    csv = {
-      headers: ['Key', ...languages],
-      rows: Array.from(allKeys).sort().map(key => {
-        const row: CSVRow = { Key: key }
-        for (const language of languages) {
-          row[language] = props.multiLanguageJsonData![language][key] || ''
-        }
-        return row
-      })
-    }
+    csv = memoizedTransforms.jsonToCSV(props.multiLanguageJsonData, languages)
   } else if (props.csvData) {
     csv = props.csvData
 
-    // Filter CSV data based on selected languages
+    // Filter CSV data based on selected languages using memoized function
     if (selectedLanguages.value.length > 0 && selectedLanguages.value.length < availableLanguages.value.length) {
-      // Filter to show only selected language columns
-      const filteredHeaders = ['Key', ...selectedLanguages.value]
-      const filteredRows = csv.rows.map(row => {
-        const filteredRow: CSVRow = { Key: row.Key }
-        selectedLanguages.value.forEach(lang => {
-          if (lang in row) {
-            filteredRow[lang] = row[lang]
-          }
-        })
-        return filteredRow
-      })
-      csv = { headers: filteredHeaders, rows: filteredRows }
+      csv = memoizedTransforms.filterCSV(props.csvData, selectedLanguages.value)
     }
 
     // Convert CSV to JSON for JSON view (use first selected language or first available)
@@ -499,7 +482,12 @@ const displayData = computed(() => {
     json = {}
   }
 
-  return { csv, json }
+  const result = { csv, json }
+
+  // Cache the result for future use
+  displayDataCache.set(cacheKey, result)
+
+  return result
 })
 
 function setView(view: ViewMode) {

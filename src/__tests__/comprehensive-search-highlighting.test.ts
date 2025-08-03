@@ -287,6 +287,10 @@ describe('Comprehensive Search Highlighting', () => {
       await wrapper.setProps({ searchQuery: 'password' })
       await wrapper.vm.$nextTick()
 
+      // Wait for debounce to complete (300ms + buffer)
+      await new Promise(resolve => setTimeout(resolve, 350))
+      await wrapper.vm.$nextTick()
+
       // Should now show highlighting
       vueJsonPretty = wrapper.findComponent('[data-testid="vue-json-pretty"]')
       content = vueJsonPretty.html()

@@ -22,7 +22,7 @@
         </SheetDescription>
       </SheetHeader>
 
-      <div class="py-6 space-y-6">
+      <div class="space-y-6 px-4">
         <!-- Search Scope -->
         <div class="space-y-3">
           <Label class="text-sm font-medium">Search Scope</Label>
@@ -65,15 +65,14 @@
           <Label class="text-sm font-medium">
             Search Sensitivity: {{ Math.round((1 - searchThreshold) * 100) }}%
           </Label>
-          <div class="px-3">
-            <input
-              type="range"
-              v-model.number="searchThreshold"
-              min="0"
-              max="0.8"
-              step="0.1"
-              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 slider"
-              @input="handleThresholdChange"
+          <div>
+            <Slider
+              :model-value="[searchThreshold]"
+              :min="0"
+              :max="0.8"
+              :step="0.1"
+              class="w-full"
+              @update:model-value="handleThresholdSliderChange"
             />
             <div class="flex justify-between text-xs text-muted-foreground mt-1">
               <span>Exact</span>
@@ -90,14 +89,14 @@
           <Label class="text-sm font-medium">
             Max Results: {{ maxResults }}
           </Label>
-          <div class="px-3">
-            <input
-              type="range"
-              v-model.number="maxResults"
-              min="10"
-              max="500"
-              step="10"
-              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700 slider"
+          <div>
+            <Slider
+              :model-value="[maxResults]"
+              :min="10"
+              :max="500"
+              :step="10"
+              class="w-full"
+              @update:model-value="handleMaxResultsSliderChange"
             />
             <div class="flex justify-between text-xs text-muted-foreground mt-1">
               <span>10</span>
@@ -121,7 +120,7 @@
                 <Badge v-else variant="outline">
                   No results
                 </Badge>
-                
+
                 <span v-if="selectedLanguage" class="text-xs text-muted-foreground">
                   in {{ selectedLanguage }}
                 </span>
@@ -173,7 +172,7 @@
           >
             Clear Search
           </Button>
-          
+
           <div class="flex space-x-2">
             <Button
               variant="outline"
@@ -194,7 +193,7 @@
               </svg>
               {{ isSearching ? 'Searching...' : 'Refresh' }}
             </Button>
-            
+
             <SheetClose as-child>
               <Button>Done</Button>
             </SheetClose>
@@ -221,6 +220,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
 import SearchScopeSelector from './SearchScopeSelector.vue'
 import type { SearchResult } from '@/types'
 
@@ -292,13 +292,22 @@ function handleLanguageChange(value: string | number | bigint | Record<string, u
   emit('update:selectedLanguage', language)
 }
 
-function handleThresholdChange() {
-  // Debounce threshold changes
-  setTimeout(() => {
-    if (props.hasQuery) {
-      emit('search')
-    }
-  }, 300)
+function handleThresholdSliderChange(value: number[] | undefined) {
+  if (value && value[0] !== undefined) {
+    searchThreshold.value = value[0]
+    // Debounce threshold changes
+    setTimeout(() => {
+      if (props.hasQuery) {
+        emit('search')
+      }
+    }, 300)
+  }
+}
+
+function handleMaxResultsSliderChange(value: number[] | undefined) {
+  if (value && value[0] !== undefined) {
+    maxResults.value = value[0]
+  }
 }
 
 function refreshSearch() {
@@ -318,39 +327,4 @@ function applySuggestion(suggestion: string) {
 }
 </script>
 
-<style scoped>
-/* Custom range slider styles */
-.slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 16px;
-  width: 16px;
-  border-radius: 50%;
-  background: hsl(var(--primary));
-  cursor: pointer;
-  border: 2px solid hsl(var(--background));
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
 
-.slider::-moz-range-thumb {
-  height: 16px;
-  width: 16px;
-  border-radius: 50%;
-  background: hsl(var(--primary));
-  cursor: pointer;
-  border: 2px solid hsl(var(--background));
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.slider::-webkit-slider-track {
-  height: 8px;
-  border-radius: 4px;
-  background: hsl(var(--muted));
-}
-
-.slider::-moz-range-track {
-  height: 8px;
-  border-radius: 4px;
-  background: hsl(var(--muted));
-}
-</style>

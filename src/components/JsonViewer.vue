@@ -60,11 +60,11 @@
         <VueJsonPretty
           :data="filteredData"
           :show-length="true"
-          :show-line="true"
-          :show-icon="true"
+          :show-line="Object.keys(filteredData).length <= 1000"
+          :show-icon="Object.keys(filteredData).length <= 1000"
           :show-double-quotes="true"
-          :collapsed-node-length="10"
-          :deep="3"
+          :collapsed-node-length="Object.keys(filteredData).length > 1000 ? 5 : 10"
+          :deep="Object.keys(filteredData).length > 1000 ? 2 : 3"
           :theme="isDarkMode ? 'dark' : 'light'"
           :height="400"
           :virtual="Object.keys(filteredData).length > 100"
@@ -72,7 +72,7 @@
         >
           <!-- Custom key rendering with search highlighting -->
           <template #renderNodeKey="{ node, defaultKey }">
-            <span v-html="highlightSearchInText(String(defaultKey || node.key || ''), localSearchQuery)" />
+            <span v-html="highlightSearchInText(String(defaultKey || node.key || ''), debouncedSearchQuery)" />
           </template>
 
           <!-- Custom value rendering with search highlighting -->
@@ -112,7 +112,7 @@
     <!-- Statistics -->
     <div class="mt-4 text-sm text-gray-600 space-y-1">
       <div>Total keys: {{ totalEntries }}</div>
-      <div v-if="localSearchQuery">Filtered: {{ filteredEntries.length }}</div>
+      <div v-if="debouncedSearchQuery">Filtered: {{ filteredEntries.length }}</div>
       <div>Average key length: {{ averageKeyLength }}</div>
       <div>Average value length: {{ averageValueLength }}</div>
     </div>
@@ -138,6 +138,7 @@ import 'vue-json-pretty/lib/styles.css'
 
 import type { TranslationData, MultiLanguageTranslationData } from '@/types'
 import { highlightText } from '@/utils'
+import { debounce } from '@/utils/memoization'
 
 interface Props {
   data: TranslationData | MultiLanguageTranslationData
@@ -157,50 +158,84 @@ defineEmits<{
 }>()
 
 const localSearchQuery = ref(props.searchQuery)
+const debouncedSearchQuery = ref(props.searchQuery)
 const viewMode = ref<'formatted' | 'compact' | 'tree'>('tree')
 const isExpanded = ref(false)
 
+// Debounce search input for better performance
+const debouncedSearch = debounce((query: unknown) => {
+  debouncedSearchQuery.value = String(query)
+}, 300)
+
+// Watch for search query changes and debounce them
+watch(localSearchQuery, (newQuery) => {
+  debouncedSearch(newQuery)
+})
+
 const totalEntries = computed(() => Object.keys(props.data).length)
 
+// Simple cache for filtering results
+const filterCache = new Map<string, [string, unknown][]>()
+
 const filteredEntries = computed(() => {
+  const cacheKey = `${JSON.stringify(props.data)}_${debouncedSearchQuery.value}`
+
+  if (filterCache.has(cacheKey)) {
+    return filterCache.get(cacheKey)!
+  }
+
   const entries = Object.entries(props.data)
 
-  if (!localSearchQuery.value.trim()) {
+  if (!debouncedSearchQuery.value.trim()) {
+    filterCache.set(cacheKey, entries)
     return entries
   }
 
-  const query = localSearchQuery.value.toLowerCase()
-  return entries.filter(([key, value]) => {
+  const lowerQuery = debouncedSearchQuery.value.toLowerCase()
+  const result = entries.filter(([key, value]) => {
     // Check if key matches
-    if (key.toLowerCase().includes(query)) {
+    if (key.toLowerCase().includes(lowerQuery)) {
       return true
     }
 
     // Handle both string values (single JSON) and object values (multi-language JSON)
     if (typeof value === 'string') {
-      return value.toLowerCase().includes(query)
+      return value.toLowerCase().includes(lowerQuery)
     } else if (typeof value === 'object' && value !== null) {
       // For nested objects, search within their string values
       return Object.values(value).some(nestedValue =>
-        typeof nestedValue === 'string' && nestedValue.toLowerCase().includes(query)
+        typeof nestedValue === 'string' && nestedValue.toLowerCase().includes(lowerQuery)
       )
     }
 
     return false
   })
+
+  filterCache.set(cacheKey, result)
+  return result
 })
+
+// Simple cache for statistics
+const statsCache = new Map<string, { avgKeyLength: number; avgValueLength: number }>()
 
 const averageKeyLength = computed(() => {
+  const cacheKey = JSON.stringify(props.data)
+
+  if (statsCache.has(cacheKey)) {
+    return statsCache.get(cacheKey)!.avgKeyLength
+  }
+
   const keys = Object.keys(props.data)
-  if (keys.length === 0) return 0
-  return Math.round(keys.reduce((sum, key) => sum + key.length, 0) / keys.length)
-})
+  if (keys.length === 0) {
+    const result = { avgKeyLength: 0, avgValueLength: 0 }
+    statsCache.set(cacheKey, result)
+    return 0
+  }
 
-const averageValueLength = computed(() => {
+  const avgKeyLength = Math.round(keys.reduce((sum, key) => sum + key.length, 0) / keys.length)
+
   const values = Object.values(props.data)
-  if (values.length === 0) return 0
-
-  const totalLength = values.reduce((sum, value) => {
+  const totalLength = values.reduce((sum: number, value) => {
     if (typeof value === 'string') {
       return sum + value.length
     } else if (typeof value === 'object' && value !== null) {
@@ -214,7 +249,23 @@ const averageValueLength = computed(() => {
     return sum
   }, 0)
 
-  return Math.round(totalLength / values.length)
+  const avgValueLength = Math.round(totalLength / values.length)
+  const result = { avgKeyLength, avgValueLength }
+  statsCache.set(cacheKey, result)
+
+  return avgKeyLength
+})
+
+const averageValueLength = computed(() => {
+  const cacheKey = JSON.stringify(props.data)
+
+  if (statsCache.has(cacheKey)) {
+    return statsCache.get(cacheKey)!.avgValueLength
+  }
+
+  // This will trigger the calculation in averageKeyLength if not cached
+  const _avgKeyLength = averageKeyLength.value
+  return statsCache.get(cacheKey)?.avgValueLength || 0
 })
 
 // Filtered data for vue-json-pretty
