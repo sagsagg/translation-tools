@@ -147,6 +147,7 @@
                       <Button
                         variant="ghost"
                         size="sm"
+                        data-testid="delete-button"
                         @click="$emit('delete-row', row, index)"
                       >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

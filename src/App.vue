@@ -171,6 +171,7 @@
             :editable="true"
             @export="exportData"
             @edit-row="handleEditRowCSV"
+            @delete-row="handleDeleteRowCSV"
             @edit-json="handleEditJSON"
             @view-change="handleViewChange"
           />
@@ -196,7 +197,7 @@
       <div class="container mx-auto px-4 py-6">
         <div class="flex items-center justify-between text-sm text-muted-foreground">
           <div>
-            <p>&copy; 2024 Convert Translation. Built with Vue 3 + TypeScript.</p>
+            <p>&copy; 2025 Convert Translation. Built with Vue 3 + TypeScript.</p>
           </div>
           <div class="flex items-center space-x-4">
             <span>{{ translationStats.totalLanguages }} languages</span>
@@ -297,8 +298,6 @@ const {
   clearAllData: clearMultiLanguageData
 } = useMultiLanguage()
 
-
-
 const {
   convertMultipleJSONToCSV
 } = useConversion()
@@ -324,6 +323,7 @@ const {
   currentEditData,
   currentDeleteData,
   openEditDialog,
+  openDeleteDialog,
   closeEditDialog,
   closeDeleteDialog,
   editTranslationInData,
@@ -690,6 +690,16 @@ function handleEditRowCSV(row: CSVRow, _index: number) {
   const language = firstValueColumn
 
   openEditDialog(key, value, language)
+}
+
+function handleDeleteRowCSV(row: CSVRow, _index: number) {
+  // Handle CSV row deletion - extract key and value from row
+  const key = row.Key || ''
+  const firstValueColumn = Object.keys(row).find(k => k !== 'Key')
+  const value = firstValueColumn ? row[firstValueColumn] || '' : ''
+  const language = firstValueColumn
+
+  openDeleteDialog(key, value, language)
 }
 
 function handleEditJSON(key: string, value: string) {
