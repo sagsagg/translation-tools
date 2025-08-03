@@ -261,9 +261,37 @@ import LanguageSelector from '@/components/LanguageSelector.vue'
 import LanguageSelectorSheet from '@/components/LanguageSelectorSheet.vue'
 import DataViewer from '@/components/DataViewer.vue'
 import SupportedLanguagesDialog from '@/components/SupportedLanguagesDialog.vue'
-import ReplaceDataConfirmDialog from '@/components/ReplaceDataConfirmDialog.vue'
-import EditTranslationDialog from '@/components/EditTranslationDialog.vue'
-import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog.vue'
+
+// Async component utilities for dialog components only
+import { createAsyncComponent, asyncComponentConfigs } from '@/utils/asyncComponents'
+
+// Lazy load dialog components (these are only loaded when needed)
+const ReplaceDataConfirmDialog = createAsyncComponent(
+  () => import('@/components/ReplaceDataConfirmDialog.vue'),
+  {
+    ...asyncComponentConfigs.dialog,
+    name: 'ReplaceDataConfirmDialog',
+    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
+  }
+)
+
+const EditTranslationDialog = createAsyncComponent(
+  () => import('@/components/EditTranslationDialog.vue'),
+  {
+    ...asyncComponentConfigs.dialog,
+    name: 'EditTranslationDialog',
+    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
+  }
+)
+
+const DeleteConfirmationDialog = createAsyncComponent(
+  () => import('@/components/DeleteConfirmationDialog.vue'),
+  {
+    ...asyncComponentConfigs.dialog,
+    name: 'DeleteConfirmationDialog',
+    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
+  }
+)
 import { useMultiLanguage } from '@/composables/useMultiLanguage'
 import { useFileUploadConfirmation } from '@/composables/useFileUploadConfirmation'
 import { useFileManagement } from '@/composables/useFileManagement'
@@ -862,6 +890,4 @@ function handleDeleteConfirm(deleteData: DeleteTranslationData) {
     })
   }
 }
-
-
 </script>

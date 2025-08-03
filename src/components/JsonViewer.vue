@@ -58,6 +58,7 @@
       <!-- Tree View -->
       <div v-if="viewMode === 'tree'" class="p-4 bg-white dark:bg-gray-900">
         <VueJsonPretty
+          v-memo="[filteredData, isDarkMode, Object.keys(filteredData).length, debouncedSearchQuery]"
           :data="filteredData"
           :show-length="true"
           :show-line="Object.keys(filteredData).length <= 1000"

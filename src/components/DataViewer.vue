@@ -323,12 +323,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, shallowRef, onUnmounted } from 'vue'
 import DataTable from './DataTable.vue'
 import JsonViewer from './JsonViewer.vue'
 import LanguageMultiSelect from './LanguageMultiSelect.vue'
 import AdvancedSearchSheet from './AdvancedSearchSheet.vue'
 import { Input } from '@/components/ui/input'
+import { usePerformanceMonitor } from '@/utils/performance'
 import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow } from '@/types'
 import { csvToJSON, getLanguagesFromCSV } from '@/utils/csv'
 import { useSearch } from '@/composables/useSearch'
@@ -360,6 +361,11 @@ const emit = defineEmits<{
 
 const currentView = ref<ViewMode>(props.defaultView)
 const selectedLanguages = ref<string[]>([])
+
+// Performance monitoring
+const { startMeasurement, endMeasurement } = usePerformanceMonitor()
+
+// Performance optimization: use shallowRef for large data objects
 
 // Initialize search functionality
 const {
@@ -409,10 +415,12 @@ const totalEntries = computed(() => {
   return 0
 })
 
-// Simple cache for display data
-const displayDataCache = new Map<string, { csv: CSVData; json: TranslationData | MultiLanguageTranslationData }>()
+// Performance optimized cache using shallowRef for large data objects
+const displayDataCache = shallowRef(new Map<string, { csv: CSVData; json: TranslationData | MultiLanguageTranslationData }>())
 
 const displayData = computed(() => {
+  startMeasurement('displayData-computation')
+
   // Create cache key from current props and selected languages
   const cacheKey = createCacheKey(
     props.multiLanguageJsonData,
@@ -422,8 +430,9 @@ const displayData = computed(() => {
   )
 
   // Return cached result if available
-  if (displayDataCache.has(cacheKey)) {
-    return displayDataCache.get(cacheKey)!
+  if (displayDataCache.value.has(cacheKey)) {
+    endMeasurement('displayData-computation')
+    return displayDataCache.value.get(cacheKey)!
   }
 
   let csv: CSVData
@@ -485,9 +494,16 @@ const displayData = computed(() => {
   const result = { csv, json }
 
   // Cache the result for future use
-  displayDataCache.set(cacheKey, result)
+  displayDataCache.value.set(cacheKey, result)
 
+  endMeasurement('displayData-computation')
   return result
+})
+
+// Cleanup on component unmount
+onUnmounted(() => {
+  // Clear cache to prevent memory leaks
+  displayDataCache.value.clear()
 })
 
 function setView(view: ViewMode) {

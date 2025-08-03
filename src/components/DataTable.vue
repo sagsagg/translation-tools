@@ -90,6 +90,7 @@
           <TableBody>
             <TableRow
               v-for="(row, index) in paginatedData"
+              v-memo="[row, showActions, searchQuery]"
               :key="index"
               class="hover:bg-muted/50"
             >
