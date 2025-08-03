@@ -21,12 +21,15 @@
 
         <div class="flex items-center space-x-2">
           <label class="text-sm font-medium">Search:</label>
-          <Input
-            v-model="localSearchQuery"
-            type="text"
-            placeholder="Search in table..."
-            class="w-64"
-          />
+          <div class="flex items-center">
+            <Input
+              v-model="localSearchQuery"
+              type="text"
+              placeholder="Search in table..."
+              class="w-64"
+            />
+            <slot name="advanced-search" />
+          </div>
         </div>
       </div>
 

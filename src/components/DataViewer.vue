@@ -89,23 +89,7 @@
       </div>
     </div>
 
-    <!-- Advanced Search Panel -->
-    <AdvancedSearchPanel
-      v-model:search-query="searchQueryFromComposable"
-      v-model:selected-language="selectedSearchLanguage"
-      v-model:search-mode="searchMode"
-      v-model:search-threshold="searchThreshold"
-      v-model:max-results="maxResults"
-      :search-results="searchResults"
-      :is-searching="isSearching"
-      :search-stats="searchStats"
-      :available-languages="availableLanguages"
-      :suggestions="searchSuggestions"
-      @search="handleSearch"
-      @clear="handleClearSearch"
-      @export="handleExportSearch"
-      @apply-suggestion="handleApplySuggestion"
-    />
+
 
     <!-- Data Display -->
     <div>
@@ -113,45 +97,131 @@
       <div v-if="currentView === 'table'" class="w-full">
         <DataTable
           :data="displayData.csv"
-          :search-query="searchQuery"
+          :search-query="searchQueryFromComposable"
           :show-actions="editable"
           @edit-row="(row, index) => emit('edit-row', row, index)"
           @delete-row="(row, index) => emit('delete-row', row, index)"
           @sort="(column, direction) => emit('sort', column, direction)"
-        />
+        >
+          <template #advanced-search>
+            <AdvancedSearchSheet
+              v-model:selected-language="selectedSearchLanguage"
+              v-model:search-mode="searchMode"
+              v-model:search-threshold="searchThreshold"
+              v-model:max-results="maxResults"
+              :search-results="searchResults"
+              :is-searching="isSearching"
+              :search-stats="searchStats"
+              :available-languages="availableLanguages"
+              :suggestions="searchSuggestions"
+              :has-query="hasQuery"
+              :has-results="hasResults"
+              @search="handleSearch"
+              @clear="handleClearSearch"
+              @export="handleExportSearch"
+              @apply-suggestion="handleApplySuggestion"
+            />
+          </template>
+        </DataTable>
       </div>
 
       <!-- JSON View -->
-      <div v-else-if="currentView === 'json'" class="w-full">
+      <div v-else-if="currentView === 'json'" class="w-full space-y-4">
+        <!-- Search Controls for JSON View -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <label class="text-sm font-medium">Search:</label>
+            <div class="flex items-center">
+              <Input
+                v-model="searchQueryFromComposable"
+                type="text"
+                placeholder="Search in JSON..."
+                class="w-64"
+              />
+              <AdvancedSearchSheet
+                v-model:selected-language="selectedSearchLanguage"
+                v-model:search-mode="searchMode"
+                v-model:search-threshold="searchThreshold"
+                v-model:max-results="maxResults"
+                :search-results="searchResults"
+                :is-searching="isSearching"
+                :search-stats="searchStats"
+                :available-languages="availableLanguages"
+                :suggestions="searchSuggestions"
+                :has-query="hasQuery"
+                :has-results="hasResults"
+                @search="handleSearch"
+                @clear="handleClearSearch"
+                @export="handleExportSearch"
+                @apply-suggestion="handleApplySuggestion"
+              />
+            </div>
+          </div>
+        </div>
+
         <JsonViewer
           :data="displayData.json"
-          :search-query="searchQuery"
+          :search-query="searchQueryFromComposable"
           :editable="editable"
           @edit="(key, value) => emit('edit-json', key, value)"
         />
       </div>
 
       <!-- Split View -->
-      <div v-else-if="currentView === 'split'" class="grid grid-cols-2 gap-4 p-4">
-        <div class="space-y-2">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Table View</h3>
-          <div class="border rounded overflow-hidden p-2">
-            <DataTable
-              :data="displayData.csv"
-              :search-query="searchQuery"
-              :show-actions="false"
-            />
+      <div v-else-if="currentView === 'split'" class="space-y-4">
+        <!-- Shared Search Controls for Split View -->
+        <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+          <div class="flex items-center space-x-2">
+            <label class="text-sm font-medium">Search:</label>
+            <div class="flex items-center">
+              <Input
+                v-model="searchQueryFromComposable"
+                type="text"
+                placeholder="Search in both views..."
+                class="w-64"
+              />
+              <AdvancedSearchSheet
+                v-model:selected-language="selectedSearchLanguage"
+                v-model:search-mode="searchMode"
+                v-model:search-threshold="searchThreshold"
+                v-model:max-results="maxResults"
+                :search-results="searchResults"
+                :is-searching="isSearching"
+                :search-stats="searchStats"
+                :available-languages="availableLanguages"
+                :suggestions="searchSuggestions"
+                :has-query="hasQuery"
+                :has-results="hasResults"
+                @search="handleSearch"
+                @clear="handleClearSearch"
+                @export="handleExportSearch"
+                @apply-suggestion="handleApplySuggestion"
+              />
+            </div>
           </div>
         </div>
 
-        <div class="space-y-2">
-          <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">JSON View</h3>
-          <div class="border rounded overflow-hidden p-2">
-            <JsonViewer
-              :data="displayData.json"
-              :search-query="searchQuery"
-              :editable="false"
-            />
+        <div class="grid grid-cols-2 gap-4 p-4">
+          <div class="space-y-2">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Table View</h3>
+            <div class="border rounded overflow-hidden p-2">
+              <DataTable
+                :data="displayData.csv"
+                :search-query="searchQueryFromComposable"
+                :show-actions="false"
+              />
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">JSON View</h3>
+            <div class="border rounded overflow-hidden p-2">
+              <JsonViewer
+                :data="displayData.json"
+                :search-query="searchQueryFromComposable"
+                :editable="false"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -162,12 +232,32 @@
           <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 border-b pb-2">CSV Table View</h3>
           <DataTable
             :data="displayData.csv"
-            :search-query="searchQuery"
+            :search-query="searchQueryFromComposable"
             :show-actions="editable"
             @edit-row="(row, index) => emit('edit-row', row, index)"
             @delete-row="(row, index) => emit('delete-row', row, index)"
             @sort="(column, direction) => emit('sort', column, direction)"
-          />
+          >
+            <template #advanced-search>
+              <AdvancedSearchSheet
+                v-model:selected-language="selectedSearchLanguage"
+                v-model:search-mode="searchMode"
+                v-model:search-threshold="searchThreshold"
+                v-model:max-results="maxResults"
+                :search-results="searchResults"
+                :is-searching="isSearching"
+                :search-stats="searchStats"
+                :available-languages="availableLanguages"
+                :suggestions="searchSuggestions"
+                :has-query="hasQuery"
+                :has-results="hasResults"
+                @search="handleSearch"
+                @clear="handleClearSearch"
+                @export="handleExportSearch"
+                @apply-suggestion="handleApplySuggestion"
+              />
+            </template>
+          </DataTable>
         </div>
       </div>
 
@@ -178,7 +268,7 @@
           <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 border-b pb-2">JSON View</h3>
           <JsonViewer
             :data="displayData.json"
-            :search-query="searchQuery"
+            :search-query="searchQueryFromComposable"
             :editable="editable"
             @edit="(key, value) => emit('edit-json', key, value)"
           />
@@ -189,12 +279,32 @@
           <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 border-b pb-2">Table View (English)</h3>
           <DataTable
             :data="displayData.csv"
-            :search-query="searchQuery"
+            :search-query="searchQueryFromComposable"
             :show-actions="editable"
             @edit-row="(row, index) => emit('edit-row', row, index)"
             @delete-row="(row, index) => emit('delete-row', row, index)"
             @sort="(column, direction) => emit('sort', column, direction)"
-          />
+          >
+            <template #advanced-search>
+              <AdvancedSearchSheet
+                v-model:selected-language="selectedSearchLanguage"
+                v-model:search-mode="searchMode"
+                v-model:search-threshold="searchThreshold"
+                v-model:max-results="maxResults"
+                :search-results="searchResults"
+                :is-searching="isSearching"
+                :search-stats="searchStats"
+                :available-languages="availableLanguages"
+                :suggestions="searchSuggestions"
+                :has-query="hasQuery"
+                :has-results="hasResults"
+                @search="handleSearch"
+                @clear="handleClearSearch"
+                @export="handleExportSearch"
+                @apply-suggestion="handleApplySuggestion"
+              />
+            </template>
+          </DataTable>
         </div>
       </div>
     </div>
@@ -205,8 +315,8 @@
         <span>Total entries: {{ totalEntries }}</span>
         <span>Languages: {{ availableLanguages.length }}</span>
       </div>
-      <div v-if="searchQuery" class="text-primary">
-        Search active: "{{ searchQuery }}"
+      <div v-if="hasQuery" class="text-primary">
+        Search active: "{{ searchQueryFromComposable }}"
       </div>
     </div>
   </div>
@@ -217,7 +327,8 @@ import { ref, computed, watch } from 'vue'
 import DataTable from './DataTable.vue'
 import JsonViewer from './JsonViewer.vue'
 import LanguageMultiSelect from './LanguageMultiSelect.vue'
-import AdvancedSearchPanel from './AdvancedSearchPanel.vue'
+import AdvancedSearchSheet from './AdvancedSearchSheet.vue'
+import { Input } from '@/components/ui/input'
 import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow } from '@/types'
 import { csvToJSON, getLanguagesFromCSV } from '@/utils/csv'
 import { useSearch } from '@/composables/useSearch'
@@ -226,14 +337,12 @@ interface Props {
   csvData?: CSVData
   jsonData?: TranslationData
   multiLanguageJsonData?: MultiLanguageTranslationData
-  searchQuery?: string
   editable?: boolean
   supportsSplitView?: boolean
   defaultView?: ViewMode
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  searchQuery: '',
   editable: false,
   supportsSplitView: true,
   defaultView: 'table'
@@ -271,6 +380,10 @@ const {
 } = useSearch()
 
 const searchSuggestions = computed(() => getSuggestions(5))
+
+// Computed properties for search state
+const hasQuery = computed(() => searchQueryFromComposable.value.trim().length > 0)
+const hasResults = computed(() => searchResults.value.length > 0)
 
 const availableLanguages = computed(() => {
   if (props.multiLanguageJsonData) {
