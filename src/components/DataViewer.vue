@@ -327,9 +327,21 @@ import { ref, computed, watch, shallowRef, onUnmounted } from 'vue'
 import DataTable from './DataTable.vue'
 import JsonViewer from './JsonViewer.vue'
 import LanguageMultiSelect from './LanguageMultiSelect.vue'
-import AdvancedSearchSheet from './AdvancedSearchSheet.vue'
 import { Input } from '@/components/ui/input'
 import { usePerformanceMonitor } from '@/utils/performance'
+
+// Async component utilities for conditionally rendered components
+import { createAsyncComponent, asyncComponentConfigs } from '@/utils/asyncComponents'
+
+// Lazy load AdvancedSearchSheet since it's only rendered when the sheet is opened
+const AdvancedSearchSheet = createAsyncComponent(
+  () => import('./AdvancedSearchSheet.vue'),
+  {
+    ...asyncComponentConfigs.sheet,
+    name: 'AdvancedSearchSheet',
+    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
+  }
+)
 import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow } from '@/types'
 import { csvToJSON, getLanguagesFromCSV } from '@/utils/csv'
 import { useSearch } from '@/composables/useSearch'

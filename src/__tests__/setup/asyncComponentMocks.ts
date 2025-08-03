@@ -7,22 +7,20 @@ import { vi } from 'vitest'
 
 // Mock the async component utilities
 vi.mock('@/utils/asyncComponents', () => ({
-  createAsyncComponent: vi.fn((loader, options) => {
-    // Return a synchronous component for testing
-    return {
-      name: options?.name || 'MockAsyncComponent',
-      template: `<div data-testid="mock-${options?.name?.toLowerCase() || 'async-component'}">Mock ${options?.name || 'AsyncComponent'}</div>`,
-      props: ['data', 'csvData', 'jsonData', 'multiLanguageJsonData', 'searchQuery', 'editable', 'showActions', 'defaultView'],
-      emits: ['export', 'edit-row', 'delete-row', 'edit-json', 'sort', 'view-change', 'edit', 'confirm', 'cancel'],
-      setup(props: Record<string, unknown>, { emit }: { emit: (event: string, ...args: unknown[]) => void }) {
-        return {
-          // Mock methods that tests might call
-          currentView: 'table',
-          totalEntries: (props.data as { rows?: unknown[] })?.rows?.length || 0,
-          handleExport: () => emit('export', 'csv'),
-          handleEdit: (key: string, value: string) => emit('edit', { key, value }),
-          handleDelete: (row: unknown, index: number) => emit('delete-row', row, index)
-        }
+  createAsyncComponent: vi.fn(async (loader, options) => {
+    // In tests, load the component synchronously by calling the loader
+    try {
+      const componentModule = await loader()
+      // Handle both ES module default exports and direct component exports
+      const component = (componentModule as { default?: unknown }).default ?? componentModule
+      return component
+    } catch (error) {
+      // Fallback to a simple mock if loading fails
+      return {
+        name: options?.name || 'MockAsyncComponent',
+        template: `<div data-testid="mock-${options?.name?.toLowerCase() || 'async-component'}">Mock ${options?.name || 'AsyncComponent'}</div>`,
+        props: ['data', 'csvData', 'jsonData', 'multiLanguageJsonData', 'searchQuery', 'editable', 'showActions', 'defaultView'],
+        emits: ['export', 'edit-row', 'delete-row', 'edit-json', 'sort', 'view-change', 'edit', 'confirm', 'cancel']
       }
     }
   }),
@@ -47,7 +45,8 @@ vi.mock('@/utils/asyncComponents', () => ({
   }
 }))
 
-// Only mock the async dialog and sheet components that are actually lazy loaded
+// The createAsyncComponent mock above handles DataViewer and AdvancedSearchSheet
+// by loading them synchronously in tests
 
 // Mock skeleton components
 vi.mock('@/components/skeleton/DataViewerSkeleton.vue', () => ({

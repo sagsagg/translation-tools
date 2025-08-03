@@ -259,11 +259,19 @@ import FileUploader from '@/components/FileUploader.vue'
 import UploadedFilesList from '@/components/UploadedFilesList.vue'
 import LanguageSelector from '@/components/LanguageSelector.vue'
 import LanguageSelectorSheet from '@/components/LanguageSelectorSheet.vue'
-import DataViewer from '@/components/DataViewer.vue'
 import SupportedLanguagesDialog from '@/components/SupportedLanguagesDialog.vue'
 
-// Async component utilities for dialog components only
+// Async component utilities for conditionally rendered components
 import { createAsyncComponent, asyncComponentConfigs } from '@/utils/asyncComponents'
+
+// Lazy load DataViewer since it's only rendered when hasData is true (v-if="hasData")
+const DataViewer = createAsyncComponent(
+  () => import('@/components/DataViewer.vue'),
+  {
+    ...asyncComponentConfigs.dataViewer,
+    loadingComponent: () => import('@/components/skeleton/DataViewerSkeleton.vue')
+  }
+)
 
 // Lazy load dialog components (these are only loaded when needed)
 const ReplaceDataConfirmDialog = createAsyncComponent(
