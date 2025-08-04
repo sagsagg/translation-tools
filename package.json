@@ -15,7 +15,9 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --fix",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "validate-ci": "bash scripts/validate-ci.sh",
+    "ci:quick": "pnpm run type-check && pnpm run lint && pnpm run test:unit -- --run"
   },
   "dependencies": {
     "@radix-icons/vue": "^1.0.0",

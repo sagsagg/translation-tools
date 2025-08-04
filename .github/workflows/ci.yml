@@ -1,0 +1,280 @@
+name: CI/CD Pipeline
+
+on:
+  # Trigger on push to main branch
+  push:
+    branches: [ main ]
+  
+  # Trigger on pull requests to main branch
+  pull_request:
+    branches: [ main ]
+  
+  # Allow manual workflow dispatch
+  workflow_dispatch:
+
+# Cancel in-progress workflows on new push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Quality Assurance Job
+  quality-assurance:
+    name: Quality Assurance
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+      # Checkout repository code
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      # Setup Node.js with specified version
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      
+      # Setup pnpm package manager
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+          run_install: false
+      
+      # Get pnpm store directory for caching
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      # Cache pnpm dependencies
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      # Install dependencies
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+      
+      # TypeScript compilation check
+      - name: TypeScript Compilation Check
+        run: |
+          echo "🔍 Running TypeScript compilation check..."
+          pnpm run type-check
+          echo "✅ TypeScript compilation successful"
+      
+      # ESLint code quality check
+      - name: ESLint Code Quality Check
+        run: |
+          echo "🔍 Running ESLint code quality check..."
+          pnpm run lint
+          echo "✅ ESLint check passed"
+      
+      # Unit tests execution
+      - name: Unit Tests Execution
+        run: |
+          echo "🧪 Running unit tests..."
+          pnpm run test:unit -- --run --reporter=verbose
+          echo "✅ All tests passed"
+      
+      # Production build verification
+      - name: Production Build Verification
+        run: |
+          echo "🏗️ Building for production..."
+          pnpm run build
+          echo "✅ Production build successful"
+      
+      # Upload build artifacts (only for Node 20.x to avoid duplicates)
+      - name: Upload Build Artifacts
+        if: matrix.node-version == '20.x'
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: dist/
+          retention-days: 7
+
+  # Component Testing Job (Extended testing for Vue components)
+  component-testing:
+    name: Component Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: quality-assurance
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+          run_install: false
+      
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+      
+      # Test specific component categories
+      - name: Test Skeleton Components
+        run: |
+          echo "🎭 Testing skeleton loading components..."
+          pnpm run test:unit src/__tests__/skeleton-components.test.ts -- --run
+          echo "✅ Skeleton components tests passed"
+      
+      - name: Test File Management
+        run: |
+          echo "📁 Testing file management functionality..."
+          pnpm run test:unit src/__tests__/file-management.test.ts -- --run
+          echo "✅ File management tests passed"
+      
+      - name: Test Reactivity Fixes
+        run: |
+          echo "⚡ Testing reactivity improvements..."
+          pnpm run test:unit src/__tests__/reactivity-fix.test.ts -- --run
+          echo "✅ Reactivity tests passed"
+      
+      - name: Test File Replacement Logic
+        run: |
+          echo "🔄 Testing file replacement functionality..."
+          pnpm run test:unit src/__tests__/file-replacement-fix.test.ts -- --run
+          pnpm run test:unit src/__tests__/file-clearing-on-confirmation.test.ts -- --run
+          echo "✅ File replacement tests passed"
+
+  # Security and Dependency Audit
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+          run_install: false
+      
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Security Audit
+        run: |
+          echo "🔒 Running security audit..."
+          pnpm audit --audit-level moderate
+          echo "✅ Security audit completed"
+
+  # Build Matrix for Different Environments
+  build-matrix:
+    name: Build Matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: quality-assurance
+    
+    strategy:
+      matrix:
+        build-mode: [development, production]
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+          run_install: false
+      
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+      
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+      
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+      
+      - name: Build Application (${{ matrix.build-mode }})
+        run: |
+          if [ "${{ matrix.build-mode }}" = "development" ]; then
+            echo "🏗️ Building for development..."
+            pnpm run build --mode development
+          else
+            echo "🏗️ Building for production..."
+            pnpm run build
+          fi
+          echo "✅ ${{ matrix.build-mode }} build completed"
+
+  # Final Status Check
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [quality-assurance, component-testing, security-audit, build-matrix]
+    if: always()
+    
+    steps:
+      - name: Check CI Status
+        run: |
+          if [ "${{ needs.quality-assurance.result }}" = "success" ] && \
+             [ "${{ needs.component-testing.result }}" = "success" ] && \
+             [ "${{ needs.security-audit.result }}" = "success" ] && \
+             [ "${{ needs.build-matrix.result }}" = "success" ]; then
+            echo "🎉 All CI checks passed successfully!"
+            echo "✅ TypeScript compilation: PASSED"
+            echo "✅ ESLint code quality: PASSED"
+            echo "✅ Unit tests (309+ tests): PASSED"
+            echo "✅ Component testing: PASSED"
+            echo "✅ Security audit: PASSED"
+            echo "✅ Build verification: PASSED"
+            echo ""
+            echo "🚀 Application is ready for deployment!"
+          else
+            echo "❌ CI pipeline failed. Please check the failed jobs above."
+            exit 1
+          fi
