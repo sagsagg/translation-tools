@@ -83,30 +83,16 @@
           </div>
 
           <div class="flex justify-center gap-2">
-            <Tooltip>
-              <TooltipTrigger as-child>
-                <Button variant="outline" @click="triggerFileSelect">
-                  Choose Files
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Select JSON or CSV translation files</p>
-              </TooltipContent>
-            </Tooltip>
+            <Button variant="outline" @click="triggerFileSelect">
+              Choose Files
+            </Button>
 
-            <Tooltip>
-              <TooltipTrigger as-child>
-                <Button variant="ghost" size="sm" @click="showNamingHelp">
-                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Naming Help
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>View JSON filename requirements</p>
-              </TooltipContent>
-            </Tooltip>
+            <Button variant="ghost" size="sm" @click="showNamingHelp">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Naming Help
+            </Button>
           </div>
         </div>
       </div>
@@ -133,7 +119,6 @@ import { Progress } from '@/components/ui/progress'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useFileUpload } from '@/composables/useFileUpload'
 import { formatFileSize } from '@/utils'
 import type { FileUploadResult } from '@/types'

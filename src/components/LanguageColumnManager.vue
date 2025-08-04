@@ -6,11 +6,12 @@
         <Button
           variant="outline"
           size="sm"
-          class="flex items-center space-x-2"
-          :disabled="availableLanguagesForAddition.length === 0"
+          class="flex items-center space-x-2 transition-all duration-200"
+          :disabled="availableLanguagesForAddition.length === 0 || isAddingLanguage"
         >
-          <Plus class="w-4 h-4" />
-          <span>Add Language</span>
+          <div v-if="isAddingLanguage" class="w-4 h-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600"></div>
+          <Plus v-else class="w-4 h-4" />
+          <span>{{ isAddingLanguage ? 'Adding...' : 'Add Language' }}</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent class="w-80 p-0" align="start">
@@ -24,7 +25,7 @@
                 Select a language to add as a new column to the table
               </p>
             </div>
-            
+
             <!-- Language Selection -->
             <div class="space-y-2">
               <label class="text-xs font-medium text-slate-700 dark:text-slate-300">
@@ -35,7 +36,8 @@
                   v-for="language in availableLanguagesForAddition"
                   :key="language.code"
                   @click="handleAddLanguage(language)"
-                  class="w-full flex items-center justify-between p-2 text-left rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  :disabled="isAddingLanguage"
+                  class="w-full flex items-center justify-between p-2 text-left rounded-md border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div class="flex flex-col">
                     <span class="text-sm font-medium text-slate-900 dark:text-slate-100">
@@ -50,7 +52,7 @@
                   </div>
                 </button>
               </div>
-              
+
               <!-- No available languages message -->
               <div
                 v-if="availableLanguagesForAddition.length === 0"
@@ -78,10 +80,12 @@
           <button
             v-if="language.code !== 'en' && currentLanguageColumns.length > 1"
             @click="handleRemoveLanguage(language)"
-            class="ml-1 hover:text-red-500 transition-colors"
+            :disabled="isRemovingLanguage"
+            class="ml-1 hover:text-red-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             :title="`Remove ${language.name}`"
           >
-            <X class="w-3 h-3" />
+            <div v-if="isRemovingLanguage" class="w-3 h-3 animate-spin rounded-full border border-red-300 border-t-red-600"></div>
+            <X v-else class="w-3 h-3" />
           </button>
         </Badge>
       </div>
@@ -90,12 +94,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Plus, X } from 'lucide-vue-next'
 import { SUPPORTED_LANGUAGES } from '@/constants/languages'
+import { toast } from '@/composables/useToast'
 import type { Language } from '@/types'
 
 interface Props {
@@ -110,6 +115,8 @@ const emit = defineEmits<{
 }>()
 
 const isPopoverOpen = ref(false)
+const isAddingLanguage = ref(false)
+const isRemovingLanguage = ref(false)
 
 // Computed properties
 const currentLanguageColumns = computed(() => props.currentLanguages)
@@ -119,18 +126,89 @@ const availableLanguagesForAddition = computed(() => {
   return SUPPORTED_LANGUAGES.filter(lang => !currentCodes.includes(lang.code))
 })
 
-// Event handlers
-function handleAddLanguage(language: Language) {
-  emit('add-language', language)
-  isPopoverOpen.value = false
+// Event handlers with performance optimization and loading states
+async function handleAddLanguage(language: Language) {
+  if (isAddingLanguage.value) return // Prevent double-clicks
+
+  try {
+    isAddingLanguage.value = true
+
+    // Use nextTick to ensure UI updates are batched
+    await nextTick()
+
+    emit('add-language', language)
+    isPopoverOpen.value = false
+
+    // Show success notification
+    toast.success(
+      'Language Added',
+      `${language.name} column has been added to the table`,
+      { duration: 2000 }
+    )
+
+    // Brief delay to show success state
+    await new Promise(resolve => setTimeout(resolve, 150))
+  } catch (error) {
+    console.error('Error adding language:', error)
+    toast.error(
+      'Failed to Add Language',
+      `Could not add ${language.name}. Please try again.`,
+      { duration: 4000 }
+    )
+  } finally {
+    isAddingLanguage.value = false
+  }
 }
 
-function handleRemoveLanguage(language: Language) {
+async function handleRemoveLanguage(language: Language) {
   // Prevent removing English (primary language) or if it's the only language
-  if (language.code === 'en' || props.currentLanguages.length <= 1) {
+  if (language.code === 'en') {
+    toast.warning(
+      'Cannot Remove English',
+      'English is the primary language and cannot be removed',
+      { duration: 3000 }
+    )
     return
   }
-  emit('remove-language', language)
+
+  if (props.currentLanguages.length <= 1) {
+    toast.warning(
+      'Cannot Remove Last Language',
+      'At least one language must remain in the table',
+      { duration: 3000 }
+    )
+    return
+  }
+
+  if (isRemovingLanguage.value) return // Prevent double-clicks
+
+  try {
+    isRemovingLanguage.value = true
+
+    // Use nextTick to ensure UI updates are batched
+    await nextTick()
+
+    emit('remove-language', language)
+
+    // Show success notification
+    toast.success(
+      'Language Removed',
+      `${language.name} column has been removed from the table`,
+      { duration: 2000 }
+    )
+
+    // Brief delay to show success state
+    await new Promise(resolve => setTimeout(resolve, 100))
+  } catch (error) {
+    console.error('Error removing language:', error)
+    toast.error(
+      'Failed to Remove Language',
+      `Could not remove ${language.name}. Please try again.`,
+      { duration: 4000 }
+    )
+  } finally {
+    isRemovingLanguage.value = false
+  }
 }
 </script>
 

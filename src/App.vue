@@ -1,272 +1,274 @@
 <template>
-  <TooltipProvider>
-    <div class="min-h-screen bg-background text-foreground">
-    <!-- Header -->
-    <header class="border-b border-border bg-card">
-      <div class="container mx-auto px-4 py-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-2">
-              <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-              <h1 class="text-2xl font-bold text-foreground">Convert Translation</h1>
-            </div>
-            <div class="hidden md:flex items-center space-x-1 text-sm text-muted-foreground">
-              <span>JSON ⇄ CSV</span>
-              <span>•</span>
-              <span>Multi-language</span>
-              <span>•</span>
-              <span>Search & Convert</span>
-            </div>
-          </div>
-
+  <div class="min-h-screen bg-background text-foreground">
+  <!-- Header -->
+  <header class="border-b border-border bg-card">
+    <div class="container mx-auto px-4 py-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
           <div class="flex items-center space-x-2">
-            <ThemeToggle />
+            <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            <h1 class="text-2xl font-bold text-foreground">Convert Translation</h1>
+          </div>
+          <div class="hidden md:flex items-center space-x-1 text-sm text-muted-foreground">
+            <span>JSON ⇄ CSV</span>
+            <span>•</span>
+            <span>Multi-language</span>
+            <span>•</span>
+            <span>Search & Convert</span>
           </div>
         </div>
+
+        <div class="flex items-center space-x-2">
+          <ThemeToggle />
+        </div>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
-      <div class="space-y-8">
-        <!-- Upload & Language Configuration Section -->
-        <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <!-- Input Column -->
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="flex items-center gap-2">
-                  <h2 class="text-xl font-semibold text-foreground">Add Translation Data</h2>
-                  <SupportedLanguagesDialog>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      class="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                      aria-label="View supported languages"
-                      title="Supported languages"
-                      data-supported-languages-trigger
-                    >
-                      <Info class="h-4 w-4" />
-                    </Button>
-                  </SupportedLanguagesDialog>
-                </div>
-                <p class="text-sm text-muted-foreground">
-                  Upload files or paste translation data to get started
-                </p>
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                @click="clearAllData"
-              >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Clear
-              </Button>
-            </div>
-
-            <!-- Input Method Tabs -->
-            <Tabs
-              :model-value="inputMethod"
-              @update:model-value="handleInputMethodChange"
-              class="w-full"
-            >
-              <TabsList class="grid w-full grid-cols-2">
-                <TabsTrigger value="file" class="flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  File Upload
-                </TabsTrigger>
-                <TabsTrigger value="text" class="flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Text Input
-                </TabsTrigger>
-              </TabsList>
-
-              <!-- File Upload Tab Content -->
-              <TabsContent value="file" class="space-y-4 mt-6">
-                <FileUploader
-                  :multiple="true"
-                  @upload="handleFileUpload"
-                  @error="handleUploadError"
-                  @show-naming-help="handleShowNamingHelp"
-                />
-
-                <!-- Uploaded Files List -->
-                <UploadedFilesList
-                  v-if="hasFiles"
-                  :files="uploadedFiles"
-                  @remove-file="handleRemoveFile"
-                  @view-file="handleViewFile"
-                  @clear-all="handleClearAllFiles"
-                />
-              </TabsContent>
-
-              <!-- Text Input Tab Content -->
-              <TabsContent value="text" class="mt-6">
-                <TextInput @process="handleTextInputProcess" />
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          <!-- Language Configuration Column -->
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <h2 class="text-xl font-semibold text-foreground">Language Configuration</h2>
-                <p class="text-sm text-muted-foreground">
-                  Configure languages for your translation project
-                </p>
-              </div>
-
-              <LanguageSelectorSheet
-                :selected-languages="selectedLanguages"
-                :primary-language="primaryLanguage"
-                @selection-change="handleLanguageSelection"
-                @options-change="handleLanguageOptions"
-              />
-            </div>
-
-            <Card v-if="selectedLanguages.length > 0">
-              <div class="p-4">
-                <LanguageSelector
-                  :selected-languages="selectedLanguages"
-                  :primary-language="primaryLanguage"
-                  :options="languageOptions"
-                />
-              </div>
-            </Card>
-
-            <Card v-else class="border-dashed">
-              <div class="p-6 text-center">
-                <svg class="w-12 h-12 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                </svg>
-                <h3 class="text-sm font-medium text-foreground mb-1">No Languages Selected</h3>
-                <p class="text-xs text-muted-foreground mb-3">
-                  Click "Languages" above to configure your translation languages
-                </p>
-              </div>
-            </Card>
-          </div>
-        </section>
-        <!-- Data Visualization Section -->
-        <section v-if="hasData" class="space-y-4">
+  <!-- Main Content -->
+  <main class="container mx-auto px-4 py-8">
+    <div class="space-y-8">
+      <!-- Upload & Language Configuration Section -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Input Column -->
+        <div class="space-y-4">
           <div class="flex items-center justify-between">
             <div>
-              <h2 class="text-xl font-semibold text-foreground">Data View</h2>
+              <div class="flex items-center gap-2">
+                <h2 class="text-xl font-semibold text-foreground">Add Translation Data</h2>
+                <SupportedLanguagesDialog>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    class="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    aria-label="View supported languages"
+                    title="Supported languages"
+                    data-supported-languages-trigger
+                  >
+                    <Info class="h-4 w-4" />
+                  </Button>
+                </SupportedLanguagesDialog>
+              </div>
               <p class="text-sm text-muted-foreground">
-                View and edit your translation data
+                Upload files or paste translation data to get started
               </p>
             </div>
 
-            <div class="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                @click="exportData('csv')"
-              >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Export CSV
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                @click="exportData('json')"
-              >
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Export JSON
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              @click="clearAllData"
+            >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              Clear
+            </Button>
           </div>
 
-          <DataViewer
-            :csv-data="csvData"
-            :json-data="jsonData"
-            :multi-language-json-data="multiLanguageJsonData"
-            :editable="true"
-            @export="exportData"
-            @edit-row="handleEditRowCSV"
-            @delete-row="handleDeleteRowCSV"
-            @edit-json="handleEditJSON"
-            @view-change="handleViewChange"
-          />
-        </section>
+          <!-- Input Method Tabs -->
+          <Tabs
+            :model-value="inputMethod"
+            @update:model-value="handleInputMethodChange"
+            class="w-full"
+          >
+            <TabsList class="grid w-full grid-cols-2">
+              <TabsTrigger value="file" class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                File Upload
+              </TabsTrigger>
+              <TabsTrigger value="text" class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Text Input
+              </TabsTrigger>
+            </TabsList>
 
-        <!-- Empty State -->
-        <section v-if="!hasData" class="text-center py-12">
-          <div class="space-y-4">
-            <svg class="w-16 h-16 mx-auto text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+            <!-- File Upload Tab Content -->
+            <TabsContent value="file" class="space-y-4 mt-6">
+              <FileUploader
+                :multiple="true"
+                @upload="handleFileUpload"
+                @error="handleUploadError"
+                @show-naming-help="handleShowNamingHelp"
+              />
+
+              <!-- Uploaded Files List -->
+              <UploadedFilesList
+                v-if="hasFiles"
+                :files="uploadedFiles"
+                @remove-file="handleRemoveFile"
+                @view-file="handleViewFile"
+                @clear-all="handleClearAllFiles"
+              />
+            </TabsContent>
+
+            <!-- Text Input Tab Content -->
+            <TabsContent value="text" class="mt-6">
+              <TextInput @process="handleTextInputProcess" />
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <!-- Language Configuration Column -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
             <div>
-              <h3 class="text-lg font-medium text-foreground">No data loaded</h3>
-              <p class="text-muted-foreground">Upload a JSON or CSV file to get started</p>
+              <h2 class="text-xl font-semibold text-foreground">Language Configuration</h2>
+              <p class="text-sm text-muted-foreground">
+                Configure languages for your translation project
+              </p>
             </div>
-          </div>
-        </section>
-      </div>
-    </main>
 
-    <!-- Footer -->
-    <footer class="border-t border-border bg-card mt-16">
-      <div class="container mx-auto px-4 py-6">
-        <div class="flex items-center justify-between text-sm text-muted-foreground">
-          <div>
-            <p>&copy; 2025 Convert Translation. Built with Vue 3 + TypeScript.</p>
+            <LanguageSelectorSheet
+              v-if="selectedLanguages.length"
+              :selected-languages="selectedLanguages"
+              :primary-language="primaryLanguage"
+              @selection-change="handleLanguageSelection"
+              @options-change="handleLanguageOptions"
+            />
           </div>
-          <div class="flex items-center space-x-4">
-            <span>{{ selectedLanguages.length }} languages</span>
-            <span>•</span>
-            <span>{{ translationStore.totalEntries }} keys</span>
+
+          <Card v-if="selectedLanguages.length > 0">
+            <div class="p-4">
+              <LanguageSelector
+                :selected-languages="selectedLanguages"
+                :primary-language="primaryLanguage"
+                :options="languageOptions"
+              />
+            </div>
+          </Card>
+
+          <Card v-else class="border-dashed">
+            <div class="p-6 text-center">
+              <svg class="w-12 h-12 mx-auto text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+              <h3 class="text-sm font-medium text-foreground mb-1">No Languages Selected</h3>
+              <p class="text-xs text-muted-foreground mb-3">
+                Click "Languages" above to configure your translation languages
+              </p>
+            </div>
+          </Card>
+        </div>
+      </section>
+      <!-- Data Visualization Section -->
+      <section v-if="hasData" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-semibold text-foreground">Data View</h2>
+            <p class="text-sm text-muted-foreground">
+              View and edit your translation data
+            </p>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              @click="exportData('csv')"
+            >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export CSV
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              @click="exportData('json')"
+            >
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export JSON
+            </Button>
           </div>
         </div>
-      </div>
-    </footer>
 
-    <!-- Toast Notifications -->
-    <Sonner />
+        <DataViewer
+          v-if="hasData"
+          :csv-data="csvData"
+          :json-data="jsonData"
+          :multi-language-json-data="multiLanguageJsonData"
+          :editable="true"
+          @export="exportData"
+          @edit-row="handleEditRowCSV"
+          @delete-row="handleDeleteRowCSV"
+          @edit-json="handleEditJSON"
+          @view-change="handleViewChange"
+        />
+      </section>
 
-    <!-- Replace Data Confirmation Dialog -->
-    <ReplaceDataConfirmDialog
-      v-model:open="isConfirmDialogOpen"
-      @confirm="handleConfirmation"
-      @cancel="handleCancellation"
-    />
-
-    <!-- Edit Translation Dialog -->
-    <EditTranslationDialog
-      v-model:open="isEditDialogOpen"
-      :original-key="currentEditData?.key || ''"
-      :original-value="currentEditData?.value || ''"
-      :language="currentEditData?.language"
-      @save="handleEditSave"
-      @cancel="uiStore.closeEditDialog"
-    />
-
-    <!-- Delete Confirmation Dialog -->
-    <DeleteConfirmationDialog
-      v-model:open="isDeleteDialogOpen"
-      :translation-key="currentDeleteData?.key || ''"
-      :translation-value="currentDeleteData?.value || ''"
-      :language="currentDeleteData?.language"
-      @delete="handleDeleteConfirm"
-      @cancel="uiStore.closeDeleteDialog"
-    />
+      <!-- Empty State -->
+      <section v-if="!hasData" class="text-center py-12">
+        <div class="space-y-4">
+          <svg class="w-16 h-16 mx-auto text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <div>
+            <h3 class="text-lg font-medium text-foreground">No data loaded</h3>
+            <p class="text-muted-foreground">Upload a JSON or CSV file to get started</p>
+          </div>
+        </div>
+      </section>
     </div>
-  </TooltipProvider>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-border bg-card mt-16">
+    <div class="container mx-auto px-4 py-6">
+      <div class="flex items-center justify-between text-sm text-muted-foreground">
+        <div>
+          <p>&copy; 2025 Convert Translation. Built with Vue 3 + TypeScript.</p>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span>{{ selectedLanguages.length }} languages</span>
+          <span>•</span>
+          <span>{{ translationStore.totalEntries }} keys</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notifications -->
+  <Sonner />
+
+  <!-- Replace Data Confirmation Dialog -->
+  <ReplaceDataConfirmDialog
+    v-model:open="isConfirmDialogOpen"
+    @confirm="handleConfirmation"
+    @cancel="handleCancellation"
+  />
+
+  <!-- Edit Translation Dialog -->
+  <EditTranslationDialog
+    v-if="isEditDialogOpen"
+    v-model:open="isEditDialogOpen"
+    :original-key="currentEditData?.key || ''"
+    :original-value="currentEditData?.value || ''"
+    :language="currentEditData?.language"
+    @save="handleEditSave"
+    @cancel="uiStore.closeEditDialog"
+  />
+
+  <!-- Delete Confirmation Dialog -->
+  <DeleteConfirmationDialog
+    v-if="isDeleteDialogOpen"
+    v-model:open="isDeleteDialogOpen"
+    :translation-key="currentDeleteData?.key || ''"
+    :translation-value="currentDeleteData?.value || ''"
+    :language="currentDeleteData?.language"
+    @delete="handleDeleteConfirm"
+    @cancel="uiStore.closeDeleteDialog"
+  />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -275,102 +277,21 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Toaster as Sonner } from '@/components/ui/sonner'
-import { TooltipProvider } from '@/components/ui/tooltip'
 import 'vue-sonner/style.css'
 
 import { Info } from 'lucide-vue-next'
 
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import LanguageSelector from '@/components/LanguageSelector.vue'
-
-// Async component utilities for conditionally rendered components
-import { createAsyncComponent, asyncComponentConfigs } from '@/utils/asyncComponents'
-
-// Lazy load components that are conditionally rendered
-// UploadedFilesList - Only renders content when files.length > 0 (v-if="files.length > 0")
-const UploadedFilesList = createAsyncComponent(
-  () => import('@/components/UploadedFilesList.vue'),
-  {
-    ...asyncComponentConfigs.sheet,
-    name: 'UploadedFilesList',
-    loadingComponent: () => import('@/components/skeleton/UploadedFilesListSkeleton.vue')
-  }
-)
-// FileUploader - Sheet content is conditionally rendered when opened
-const FileUploader = createAsyncComponent(
-  () => import('@/components/FileUploader.vue'),
-  {
-    ...asyncComponentConfigs.sheet,
-    name: 'FileUploader',
-    loadingComponent: () => import('@/components/skeleton/FileUploaderSkeleton.vue')
-  }
-)
-// TextInput - Sheet content is conditionally rendered when opened
-const TextInput = createAsyncComponent(
-  () => import('@/components/TextInput.vue'),
-  {
-    ...asyncComponentConfigs.sheet,
-    name: 'TextInput',
-    loadingComponent: () => import('@/components/skeleton/TextInputSkeleton.vue')
-  }
-)
-
-// LanguageSelectorSheet - Sheet content is conditionally rendered when opened
-const LanguageSelectorSheet = createAsyncComponent(
-  () => import('@/components/LanguageSelectorSheet.vue'),
-  {
-    ...asyncComponentConfigs.sheet,
-    name: 'LanguageSelectorSheet',
-    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
-  }
-)
-
-// SupportedLanguagesDialog - Dialog content is conditionally rendered when opened
-const SupportedLanguagesDialog = createAsyncComponent(
-  () => import('@/components/SupportedLanguagesDialog.vue'),
-  {
-    ...asyncComponentConfigs.dialog,
-    name: 'SupportedLanguagesDialog',
-    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
-  }
-)
-
-// Lazy load DataViewer since it's only rendered when hasData is true (v-if="hasData")
-const DataViewer = createAsyncComponent(
-  () => import('@/components/DataViewer.vue'),
-  {
-    ...asyncComponentConfigs.dataViewer,
-    loadingComponent: () => import('@/components/skeleton/DataViewerSkeleton.vue')
-  }
-)
-
-// Lazy load dialog components (these are only loaded when needed)
-const ReplaceDataConfirmDialog = createAsyncComponent(
-  () => import('@/components/ReplaceDataConfirmDialog.vue'),
-  {
-    ...asyncComponentConfigs.dialog,
-    name: 'ReplaceDataConfirmDialog',
-    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
-  }
-)
-
-const EditTranslationDialog = createAsyncComponent(
-  () => import('@/components/EditTranslationDialog.vue'),
-  {
-    ...asyncComponentConfigs.dialog,
-    name: 'EditTranslationDialog',
-    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
-  }
-)
-
-const DeleteConfirmationDialog = createAsyncComponent(
-  () => import('@/components/DeleteConfirmationDialog.vue'),
-  {
-    ...asyncComponentConfigs.dialog,
-    name: 'DeleteConfirmationDialog',
-    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
-  }
-)
+import FileUploader from '@/components/FileUploader.vue'
+import TextInput from '@/components/TextInput.vue'
+import UploadedFilesList from '@/components/UploadedFilesList.vue'
+import LanguageSelectorSheet from '@/components/LanguageSelectorSheet.vue'
+import SupportedLanguagesDialog from '@/components/SupportedLanguagesDialog.vue'
+import DataViewer from '@/components/DataViewer.vue'
+import ReplaceDataConfirmDialog from '@/components/ReplaceDataConfirmDialog.vue'
+import EditTranslationDialog from '@/components/EditTranslationDialog.vue'
+import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog.vue'
 import { useTranslationStore, useLanguageStore, useFileStore, useUIStore, storeToRefs } from '@/stores'
 import { useMultiLanguage } from '@/composables/useMultiLanguage'
 import { useFileUploadConfirmation } from '@/composables/useFileUploadConfirmation'

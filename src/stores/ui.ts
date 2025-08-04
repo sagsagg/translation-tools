@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { defineStore } from 'pinia'
 import type { ViewMode } from '@/types'
 
@@ -6,13 +6,13 @@ export const useUIStore = defineStore('ui', () => {
   // State
   const currentView = ref<ViewMode>('table')
   const inputMethod = ref<'file' | 'text'>('file')
-  
+
   // Dialog states
   const isEditDialogOpen = ref(false)
   const isDeleteDialogOpen = ref(false)
   const isConfirmDialogOpen = ref(false)
   const isSupportedLanguagesDialogOpen = ref(false)
-  
+
   // Edit/Delete data
   const currentEditData = ref<{
     key: string
@@ -29,26 +29,26 @@ export const useUIStore = defineStore('ui', () => {
   // Loading states
   const isLoading = ref(false)
   const loadingMessage = ref('')
-  
+
   // Error states
   const hasError = ref(false)
   const errorMessage = ref('')
-  
+
   // Search states
   const isSearchActive = ref(false)
   const searchQuery = ref('')
-  
+
   // Theme and preferences
   const theme = ref<'light' | 'dark' | 'system'>('system')
   const sidebarCollapsed = ref(false)
-  
+
   // Performance monitoring
   const performanceMode = ref<'normal' | 'high-performance'>('normal')
 
   // Getters
-  const isAnyDialogOpen = computed(() => 
-    isEditDialogOpen.value || 
-    isDeleteDialogOpen.value || 
+  const isAnyDialogOpen = computed(() =>
+    isEditDialogOpen.value ||
+    isDeleteDialogOpen.value ||
     isConfirmDialogOpen.value ||
     isSupportedLanguagesDialogOpen.value
   )
@@ -76,8 +76,11 @@ export const useUIStore = defineStore('ui', () => {
 
   // Dialog management
   function openEditDialog(key: string, value: string, language?: string) {
-    currentEditData.value = { key, value, language }
-    isEditDialogOpen.value = true
+    // Use nextTick to break reactive dependency chain and prevent recursive updates
+    nextTick(() => {
+      currentEditData.value = { key, value, language }
+      isEditDialogOpen.value = true
+    })
   }
 
   function closeEditDialog() {
@@ -86,8 +89,11 @@ export const useUIStore = defineStore('ui', () => {
   }
 
   function openDeleteDialog(key: string, value: string, language?: string) {
-    currentDeleteData.value = { key, value, language }
-    isDeleteDialogOpen.value = true
+    // Use nextTick to break reactive dependency chain and prevent recursive updates
+    nextTick(() => {
+      currentDeleteData.value = { key, value, language }
+      isDeleteDialogOpen.value = true
+    })
   }
 
   function closeDeleteDialog() {
@@ -122,7 +128,7 @@ export const useUIStore = defineStore('ui', () => {
   function setLoading(loading: boolean, message = '') {
     isLoading.value = loading
     loadingMessage.value = message
-    
+
     if (!loading) {
       loadingMessage.value = ''
     }
@@ -140,7 +146,7 @@ export const useUIStore = defineStore('ui', () => {
   function setError(error: boolean, message = '') {
     hasError.value = error
     errorMessage.value = message
-    
+
     if (!error) {
       errorMessage.value = ''
     }
@@ -157,7 +163,7 @@ export const useUIStore = defineStore('ui', () => {
   // Search state management
   function setSearchActive(active: boolean) {
     isSearchActive.value = active
-    
+
     if (!active) {
       searchQuery.value = ''
     }
@@ -207,8 +213,8 @@ export const useUIStore = defineStore('ui', () => {
   }
 
   function togglePerformanceMode() {
-    performanceMode.value = performanceMode.value === 'normal' 
-      ? 'high-performance' 
+    performanceMode.value = performanceMode.value === 'normal'
+      ? 'high-performance'
       : 'normal'
   }
 
@@ -257,21 +263,21 @@ export const useUIStore = defineStore('ui', () => {
   function restoreUISnapshot(snapshot: ReturnType<typeof getUISnapshot>) {
     currentView.value = snapshot.currentView
     inputMethod.value = snapshot.inputMethod
-    
+
     isEditDialogOpen.value = snapshot.dialogs.edit
     isDeleteDialogOpen.value = snapshot.dialogs.delete
     isConfirmDialogOpen.value = snapshot.dialogs.confirm
     isSupportedLanguagesDialogOpen.value = snapshot.dialogs.supportedLanguages
-    
+
     isLoading.value = snapshot.loading.isLoading
     loadingMessage.value = snapshot.loading.message
-    
+
     hasError.value = snapshot.error.hasError
     errorMessage.value = snapshot.error.message
-    
+
     isSearchActive.value = snapshot.search.isActive
     searchQuery.value = snapshot.search.query
-    
+
     theme.value = snapshot.theme
     sidebarCollapsed.value = snapshot.sidebar.collapsed
     performanceMode.value = snapshot.performance.mode
@@ -296,14 +302,14 @@ export const useUIStore = defineStore('ui', () => {
     theme,
     sidebarCollapsed,
     performanceMode,
-    
+
     // Getters
     isAnyDialogOpen,
     canChangeView,
     canChangeInputMethod,
     hasActiveSearch,
     isHighPerformanceMode,
-    
+
     // Actions
     setCurrentView,
     setInputMethod,

@@ -29,23 +29,16 @@
       </div>
 
       <div class="flex items-center space-x-2">
-        <Tooltip>
-          <TooltipTrigger as-child>
-            <Button
-              variant="outline"
-              size="sm"
-              @click="copyToClipboard"
-            >
-              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Copy
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Copy JSON to clipboard</p>
-          </TooltipContent>
-        </Tooltip>
+        <Button
+          variant="outline"
+          size="sm"
+          @click="copyToClipboard"
+        >
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy
+        </Button>
 
         <Badge variant="secondary" class="text-xs">
           {{ filteredEntries.length }} of {{ totalEntries }} entries
@@ -121,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -131,7 +124,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
 import VueJsonPretty from 'vue-json-pretty'
 import 'vue-json-pretty/lib/styles.css'
@@ -188,7 +180,10 @@ const filteredEntries = computed(() => {
   const entries = Object.entries(props.data)
 
   if (!debouncedSearchQuery.value.trim()) {
-    filterCache.set(cacheKey, entries)
+    // Cache mutation moved to nextTick to avoid side effects in computed
+    nextTick(() => {
+      filterCache.set(cacheKey, entries)
+    })
     return entries
   }
 
@@ -212,7 +207,10 @@ const filteredEntries = computed(() => {
     return false
   })
 
-  filterCache.set(cacheKey, result)
+  // Cache mutation moved to nextTick to avoid side effects in computed
+  nextTick(() => {
+    filterCache.set(cacheKey, result)
+  })
   return result
 })
 
@@ -252,7 +250,11 @@ const averageKeyLength = computed(() => {
 
   const avgValueLength = Math.round(totalLength / values.length)
   const result = { avgKeyLength, avgValueLength }
-  statsCache.set(cacheKey, result)
+
+  // Cache mutation moved to nextTick to avoid side effects in computed
+  nextTick(() => {
+    statsCache.set(cacheKey, result)
+  })
 
   return avgKeyLength
 })
@@ -265,7 +267,9 @@ const averageValueLength = computed(() => {
   }
 
   // This will trigger the calculation in averageKeyLength if not cached
-  const _avgKeyLength = averageKeyLength.value
+  // Access averageKeyLength to ensure calculation is triggered
+  void averageKeyLength.value
+
   return statsCache.get(cacheKey)?.avgValueLength || 0
 })
 

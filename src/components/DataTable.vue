@@ -105,7 +105,7 @@
           <TableBody>
             <TableRow
               v-for="(row, index) in paginatedData"
-              v-memo="[row, showActions, searchQuery]"
+              v-memo="[row, showActions, localSearchQuery]"
               :key="index"
               class="hover:bg-muted/50"
             >
@@ -147,41 +147,28 @@
                 </div>
               </TableCell>
               <TableCell v-if="showActions">
+                <!-- Isolate each row's tooltips with their own provider to prevent recursive updates -->
                 <div class="flex space-x-1">
-                  <Tooltip>
-                    <TooltipTrigger as-child>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        @click="$emit('edit-row', row, index)"
-                      >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Edit row</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger as-child>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        data-testid="delete-button"
-                        @click="$emit('delete-row', row, index)"
-                      >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Delete row</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      @click="$emit('edit-row', row, index)"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      data-testid="delete-button"
+                      @click="$emit('delete-row', row, index)"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </Button>
+                  </div>
               </TableCell>
             </TableRow>
           </TableBody>
@@ -249,7 +236,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import LanguageColumnManager from '@/components/LanguageColumnManager.vue'
 
 import type { CSVData, CSVRow, SortDirection, Language } from '@/types'
@@ -354,7 +340,7 @@ function goToPage(page: number) {
 // Watch for external search query changes
 watch(() => props.searchQuery, (newQuery) => {
   localSearchQuery.value = newQuery
-})
+}, { immediate: true })
 
 // Reset to first page when search or page size changes
 watch([localSearchQuery, pageSize], () => {

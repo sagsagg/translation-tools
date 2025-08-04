@@ -58,10 +58,11 @@ Quality Assurance (Node 18.x & 20.x)
 - Vue 3 + TypeScript best practices
 
 ### ✅ Test Coverage
-- **309+ unit tests** must pass
+- **352+ unit tests** must pass (including language column management)
 - Component behavior validation
 - Integration test coverage
 - Regression test protection
+- **Dynamic Language Column Management** feature validation
 
 ### ✅ Build Verification
 - Production build success
@@ -103,6 +104,46 @@ Configure your IDE to run these checks automatically:
 - **ESLint**: Auto-fix on save
 - **Prettier**: Format on save
 - **Vitest**: Run tests in watch mode
+
+## Dynamic Language Column Management Testing
+
+### Feature-Specific Test Suites
+The language column management feature includes comprehensive test coverage:
+
+```bash
+# Core functionality tests (22 tests)
+pnpm run test:unit src/__tests__/language-column-management.test.ts -- --run
+
+# Workflow integration tests (4 tests)
+pnpm run test:unit src/__tests__/language-column-workflow.test.ts -- --run
+
+# Reactivity fix verification (5 tests)
+pnpm run test:unit src/__tests__/dataviewer-reactivity.test.ts -- --run
+
+# Edge cases and production readiness (12 tests)
+pnpm run test:unit src/__tests__/language-column-edge-cases.test.ts -- --run
+```
+
+### Test Categories Covered
+- **Component Integration**: LanguageColumnManager + DataTable interaction
+- **Store Management**: Language store + Translation store coordination
+- **Reactivity**: Real-time table updates and cache management
+- **Edge Cases**: Error handling, performance, and data validation
+- **Production Readiness**: Large datasets, memory management, component resilience
+
+### CI/CD Integration
+The language column management tests are automatically included in the CI pipeline:
+- **Quality Assurance Job**: Runs all 43 language management tests
+- **Component Testing Job**: Validates specific component interactions
+- **Performance Testing**: Verifies handling of large datasets (1000+ rows)
+- **Memory Management**: Ensures proper cleanup and no memory leaks
+
+### Success Criteria
+- ✅ All 43 language management tests must pass
+- ✅ Zero TypeScript compilation errors
+- ✅ Performance benchmarks met (<100ms for 1000 rows)
+- ✅ Memory usage within acceptable limits
+- ✅ Reactivity working correctly across all scenarios
 
 ## GitHub Actions Configuration
 

@@ -6,76 +6,60 @@
         <!-- View Toggle -->
         <div class="flex items-center space-x-2">
           <label class="text-sm font-medium">View:</label>
-          <div class="flex border rounded-lg overflow-hidden">
-            <button
-              class="px-3 py-1 text-sm font-medium transition-colors"
-              :class="{
-                'bg-blue-600 text-white': currentView === 'table',
-                'bg-gray-100 text-gray-700 hover:bg-gray-200': currentView !== 'table'
-              }"
-              @click="setView('table')"
-            >
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <ToggleGroup
+            type="single"
+            :model-value="currentView"
+            @update:model-value="handleViewChange"
+            variant="outline"
+            size="sm"
+          >
+            <ToggleGroupItem value="table" aria-label="Table view">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18m-9 8h9m-9 4h9m-9-8h9m-9 4h9" />
               </svg>
               Table
-            </button>
-            <button
-              class="px-3 py-1 text-sm font-medium transition-colors"
-              :class="{
-                'bg-blue-600 text-white': currentView === 'json',
-                'bg-gray-100 text-gray-700 hover:bg-gray-200': currentView !== 'json'
-              }"
-              @click="setView('json')"
-            >
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            </ToggleGroupItem>
+
+            <ToggleGroupItem value="json" aria-label="JSON view">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
               </svg>
               JSON
-            </button>
-            <button
+            </ToggleGroupItem>
+
+            <ToggleGroupItem
               v-if="supportsSplitView"
-              class="px-3 py-1 text-sm font-medium transition-colors"
-              :class="{
-                'bg-blue-600 text-white': currentView === 'split',
-                'bg-gray-100 text-gray-700 hover:bg-gray-200': currentView !== 'split'
-              }"
-              @click="setView('split')"
+              value="split"
+              aria-label="Split view"
             >
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
               </svg>
               Split
-            </button>
-            <button
+            </ToggleGroupItem>
+
+            <ToggleGroupItem
               v-if="(jsonData && !csvData) || multiLanguageJsonData"
-              class="px-3 py-1 text-sm font-medium transition-colors"
-              :class="{
-                'bg-blue-600 text-white': currentView === 'csv-table',
-                'bg-gray-100 text-gray-700 hover:bg-gray-200': currentView !== 'csv-table'
-              }"
-              @click="setView('csv-table')"
+              value="csv-table"
+              aria-label="CSV table view"
             >
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18m-9 8h9m-9 4h9m-9-8h9m-9 4h9" />
               </svg>
               CSV Table
-            </button>
-            <button
+            </ToggleGroupItem>
+
+            <ToggleGroupItem
               v-if="(jsonData && !csvData) || multiLanguageJsonData"
-              class="px-3 py-1 text-sm font-medium transition-colors"
-              :class="{
-                'bg-blue-600 text-white': currentView === 'dual',
-                'bg-gray-100 text-gray-700 hover:bg-gray-200': currentView !== 'dual'
-              }"
-              @click="setView('dual')"
+              value="dual"
+              aria-label="Dual view"
             >
-              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
               Dual View
-            </button>
-          </div>
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         <!-- Language Filter (for multi-language data) -->
@@ -333,29 +317,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, shallowRef, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import DataTable from './DataTable.vue'
 import JsonViewer from './JsonViewer.vue'
 import LanguageMultiSelect from './LanguageMultiSelect.vue'
 import { Input } from '@/components/ui/input'
-import { usePerformanceMonitor } from '@/utils/performance'
-
-// Async component utilities for conditionally rendered components
-import { createAsyncComponent, asyncComponentConfigs } from '@/utils/asyncComponents'
-
-// Lazy load AdvancedSearchSheet since it's only rendered when the sheet is opened
-const AdvancedSearchSheet = createAsyncComponent(
-  () => import('./AdvancedSearchSheet.vue'),
-  {
-    ...asyncComponentConfigs.sheet,
-    name: 'AdvancedSearchSheet',
-    loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
-  }
-)
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import AdvancedSearchSheet from './AdvancedSearchSheet.vue'
 import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow, Language } from '@/types'
 import { csvToJSON, getLanguagesFromCSV } from '@/utils/csv'
 import { useSearch } from '@/composables/useSearch'
-import { memoizedTransforms, createCacheKey } from '@/utils/memoization'
+import { memoizedTransforms } from '@/utils/memoization'
 import { useTranslationStore, useLanguageStore, storeToRefs } from '@/stores'
 import { SUPPORTED_LANGUAGES } from '@/constants/languages'
 
@@ -389,11 +361,54 @@ const translationStore = useTranslationStore()
 const languageStore = useLanguageStore()
 const { tableLanguages } = storeToRefs(languageStore)
 
+// Initialize store data based on props - ensures language column management works for all file types
+function initializeStoreData() {
+  // Priority: multiLanguageJsonData > csvData > jsonData
+  if (props.multiLanguageJsonData && Object.keys(props.multiLanguageJsonData).length > 0) {
+    // Convert multi-language JSON to CSV and store it
+    const languages = Object.keys(props.multiLanguageJsonData).sort()
+    const csvData = memoizedTransforms.jsonToCSV(props.multiLanguageJsonData, languages)
+    translationStore.setCSVData(csvData)
+
+    // Set table languages based on available languages
+    const supportedLanguages = languages.map(lang =>
+      SUPPORTED_LANGUAGES.find(sl => sl.code === lang || sl.name === lang) ||
+      { code: lang, name: lang, nativeName: lang }
+    )
+    languageStore.setTableLanguages(supportedLanguages)
+  } else if (props.csvData) {
+    // Store CSV data directly
+    translationStore.setCSVData(props.csvData)
+
+    // Extract and set table languages from CSV headers
+    const languages = getLanguagesFromCSV(props.csvData)
+    const supportedLanguages = languages.map(lang =>
+      SUPPORTED_LANGUAGES.find(sl => sl.name === lang || sl.code === lang) ||
+      { code: lang.toLowerCase().replace(/\s+/g, '-'), name: lang, nativeName: lang }
+    )
+    languageStore.setTableLanguages(supportedLanguages)
+  } else if (props.jsonData && Object.keys(props.jsonData).length > 0) {
+    // Convert single JSON to CSV format and store it
+    const language = 'English' // Default language for single JSON files
+    const csvData: CSVData = {
+      headers: ['Key', language],
+      rows: Object.entries(props.jsonData).map(([key, value]) => ({
+        Key: key,
+        [language]: value
+      }))
+    }
+    translationStore.setCSVData(csvData)
+
+    // Set English as the default table language
+    const englishLang = SUPPORTED_LANGUAGES.find(sl => sl.code === 'en') || SUPPORTED_LANGUAGES[0]
+    languageStore.setTableLanguages([englishLang])
+  }
+}
+
 const currentView = ref<ViewMode>(props.defaultView)
 const selectedLanguages = ref<string[]>([])
 
-// Performance monitoring
-const { startMeasurement, endMeasurement } = usePerformanceMonitor()
+// Performance monitoring removed from computed to avoid side effects
 
 // Performance optimization: use shallowRef for large data objects
 
@@ -445,35 +460,11 @@ const totalEntries = computed(() => {
   return 0
 })
 
-// Performance optimized cache using shallowRef for large data objects
-const displayDataCache = shallowRef(new Map<string, { csv: CSVData; json: TranslationData | MultiLanguageTranslationData }>())
+// Cache removed to eliminate side effects in computed properties
 
 const displayData = computed(() => {
-  startMeasurement('displayData-computation')
-
   // Use store's CSV data if available, otherwise use props
   const currentCSVData = translationStore.csvData || props.csvData
-
-  // Skip cache when using store data to ensure reactivity
-  const useCache = !translationStore.csvData
-
-  let cacheKey = ''
-  if (useCache) {
-    // Create cache key from current props, store data, and selected languages
-    cacheKey = createCacheKey(
-      props.multiLanguageJsonData,
-      currentCSVData,
-      props.jsonData,
-      selectedLanguages.value,
-      tableLanguages.value // Include table languages in cache key
-    )
-
-    // Return cached result if available
-    if (displayDataCache.value.has(cacheKey)) {
-      endMeasurement('displayData-computation')
-      return displayDataCache.value.get(cacheKey)!
-    }
-  }
 
   let csv: CSVData
   let json: TranslationData | MultiLanguageTranslationData
@@ -506,8 +497,11 @@ const displayData = computed(() => {
   } else if (currentCSVData) {
     csv = currentCSVData
 
-    // Filter CSV data based on selected languages using memoized function
-    if (selectedLanguages.value.length > 0 && selectedLanguages.value.length < availableLanguages.value.length) {
+    // Only filter CSV data if we have selected languages and they're different from available languages
+    // This prevents filtering out newly added language columns
+    if (selectedLanguages.value.length > 0 &&
+        selectedLanguages.value.length < availableLanguages.value.length &&
+        !translationStore.csvData) { // Don't filter store data to preserve new columns
       csv = memoizedTransforms.filterCSV(currentCSVData, selectedLanguages.value)
     }
 
@@ -533,24 +527,34 @@ const displayData = computed(() => {
 
   const result = { csv, json }
 
-  // Cache the result for future use (only when not using store data)
-  if (useCache && cacheKey) {
-    displayDataCache.value.set(cacheKey, result)
-  }
+  // Note: Cache mutation removed from computed to avoid side effects
+  // Caching can be implemented with a separate watcher if needed for performance
 
-  endMeasurement('displayData-computation')
   return result
 })
 
-// Cleanup on component unmount
-onUnmounted(() => {
-  // Clear cache to prevent memory leaks
-  displayDataCache.value.clear()
-})
+// Initialize store data when component mounts or props change
+initializeStoreData()
+
+// Watch for prop changes and reinitialize store data
+watch(
+  () => [props.csvData, props.jsonData, props.multiLanguageJsonData],
+  () => {
+    initializeStoreData()
+  },
+  { deep: true }
+)
 
 function setView(view: ViewMode) {
   currentView.value = view
   emit('view-change', view)
+}
+
+// Handle ToggleGroup value change
+function handleViewChange(value: unknown) {
+  if (typeof value === 'string' && value) {
+    setView(value as ViewMode)
+  }
 }
 
 // Search handlers
@@ -612,15 +616,15 @@ function handleAddLanguage(language: Language) {
   // Add to language store
   languageStore.addTableLanguage(language)
 
-  // Add column to CSV data if available
-  // Use store's CSV data or props CSV data
-  const currentCSVData = translationStore.csvData || props.csvData
-  if (currentCSVData) {
-    // If we haven't set the CSV data in the store yet, set it first
-    if (!translationStore.csvData && props.csvData) {
-      translationStore.setCSVData(props.csvData)
-    }
+  // Add column to CSV data - store should always have CSV data after initialization
+  if (translationStore.csvData) {
     translationStore.addLanguageColumn(language.code, language.name)
+  } else {
+    // Fallback: try to initialize store data
+    initializeStoreData()
+    if (translationStore.csvData) {
+      translationStore.addLanguageColumn(language.code, language.name)
+    }
   }
 }
 
@@ -647,10 +651,12 @@ watch(availableLanguages, (languages) => {
   }
 }, { immediate: true })
 
-// Watch for JSON data changes and auto-switch to CSV table view
+// Watch for JSON data changes - keep table view for better UX
 watch(() => props.jsonData, (jsonData) => {
-  if (jsonData && !props.csvData && currentView.value === 'table') {
-    setView('csv-table')
+  // JSON files should use 'table' view by default for optimal user experience
+  // The table view now supports language column management for all file types
+  if (jsonData && !props.csvData && currentView.value !== 'table') {
+    setView('table')
   }
 }, { immediate: true })
 
@@ -682,4 +688,8 @@ watch(() => props.csvData, (csvData) => {
     }
   }
 }, { immediate: true })
+
+onMounted(() => {
+  console.log('DataViewer mounted');
+})
 </script>
