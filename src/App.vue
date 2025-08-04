@@ -302,6 +302,7 @@ const FileUploader = createAsyncComponent(
   {
     ...asyncComponentConfigs.sheet,
     name: 'FileUploader',
+    loadingComponent: () => import('@/components/skeleton/FileUploaderSkeleton.vue')
   }
 )
 // TextInput - Sheet content is conditionally rendered when opened
@@ -310,6 +311,7 @@ const TextInput = createAsyncComponent(
   {
     ...asyncComponentConfigs.sheet,
     name: 'TextInput',
+    loadingComponent: () => import('@/components/skeleton/TextInputSkeleton.vue')
   }
 )
 
