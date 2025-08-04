@@ -89,8 +89,6 @@
       </div>
     </div>
 
-
-
     <!-- Data Display -->
     <div>
       <!-- Table View -->
@@ -99,8 +97,12 @@
           :data="displayData.csv"
           :search-query="searchQueryFromComposable"
           :show-actions="editable"
+          :allow-language-management="true"
+          :current-languages="tableLanguages"
           @edit-row="(row, index) => emit('edit-row', row, index)"
           @delete-row="(row, index) => emit('delete-row', row, index)"
+          @add-language="handleAddLanguage"
+          @remove-language="handleRemoveLanguage"
           @sort="(column, direction) => emit('sort', column, direction)"
         >
           <template #advanced-search>
@@ -234,8 +236,12 @@
             :data="displayData.csv"
             :search-query="searchQueryFromComposable"
             :show-actions="editable"
+            :allow-language-management="true"
+            :current-languages="tableLanguages"
             @edit-row="(row, index) => emit('edit-row', row, index)"
             @delete-row="(row, index) => emit('delete-row', row, index)"
+            @add-language="handleAddLanguage"
+            @remove-language="handleRemoveLanguage"
             @sort="(column, direction) => emit('sort', column, direction)"
           >
             <template #advanced-search>
@@ -281,8 +287,12 @@
             :data="displayData.csv"
             :search-query="searchQueryFromComposable"
             :show-actions="editable"
+            :allow-language-management="true"
+            :current-languages="tableLanguages"
             @edit-row="(row, index) => emit('edit-row', row, index)"
             @delete-row="(row, index) => emit('delete-row', row, index)"
+            @add-language="handleAddLanguage"
+            @remove-language="handleRemoveLanguage"
             @sort="(column, direction) => emit('sort', column, direction)"
           >
             <template #advanced-search>
@@ -342,10 +352,13 @@ const AdvancedSearchSheet = createAsyncComponent(
     loadingComponent: () => import('@/components/skeleton/DialogSkeleton.vue')
   }
 )
-import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow } from '@/types'
+import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow, Language } from '@/types'
 import { csvToJSON, getLanguagesFromCSV } from '@/utils/csv'
 import { useSearch } from '@/composables/useSearch'
 import { memoizedTransforms, createCacheKey } from '@/utils/memoization'
+import { useTranslationStore, useLanguageStore, storeToRefs } from '@/stores'
+import { SUPPORTED_LANGUAGES } from '@/constants/languages'
+
 
 interface Props {
   csvData?: CSVData
@@ -370,6 +383,11 @@ const emit = defineEmits<{
   'sort': [column: string, direction: 'asc' | 'desc']
   'view-change': [view: ViewMode]
 }>()
+
+// Store integration
+const translationStore = useTranslationStore()
+const languageStore = useLanguageStore()
+const { tableLanguages } = storeToRefs(languageStore)
 
 const currentView = ref<ViewMode>(props.defaultView)
 const selectedLanguages = ref<string[]>([])
@@ -433,18 +451,28 @@ const displayDataCache = shallowRef(new Map<string, { csv: CSVData; json: Transl
 const displayData = computed(() => {
   startMeasurement('displayData-computation')
 
-  // Create cache key from current props and selected languages
-  const cacheKey = createCacheKey(
-    props.multiLanguageJsonData,
-    props.csvData,
-    props.jsonData,
-    selectedLanguages.value
-  )
+  // Use store's CSV data if available, otherwise use props
+  const currentCSVData = translationStore.csvData || props.csvData
 
-  // Return cached result if available
-  if (displayDataCache.value.has(cacheKey)) {
-    endMeasurement('displayData-computation')
-    return displayDataCache.value.get(cacheKey)!
+  // Skip cache when using store data to ensure reactivity
+  const useCache = !translationStore.csvData
+
+  let cacheKey = ''
+  if (useCache) {
+    // Create cache key from current props, store data, and selected languages
+    cacheKey = createCacheKey(
+      props.multiLanguageJsonData,
+      currentCSVData,
+      props.jsonData,
+      selectedLanguages.value,
+      tableLanguages.value // Include table languages in cache key
+    )
+
+    // Return cached result if available
+    if (displayDataCache.value.has(cacheKey)) {
+      endMeasurement('displayData-computation')
+      return displayDataCache.value.get(cacheKey)!
+    }
   }
 
   let csv: CSVData
@@ -475,17 +503,17 @@ const displayData = computed(() => {
       : Object.keys(props.multiLanguageJsonData).sort()
 
     csv = memoizedTransforms.jsonToCSV(props.multiLanguageJsonData, languages)
-  } else if (props.csvData) {
-    csv = props.csvData
+  } else if (currentCSVData) {
+    csv = currentCSVData
 
     // Filter CSV data based on selected languages using memoized function
     if (selectedLanguages.value.length > 0 && selectedLanguages.value.length < availableLanguages.value.length) {
-      csv = memoizedTransforms.filterCSV(props.csvData, selectedLanguages.value)
+      csv = memoizedTransforms.filterCSV(currentCSVData, selectedLanguages.value)
     }
 
     // Convert CSV to JSON for JSON view (use first selected language or first available)
     const targetLanguage = selectedLanguages.value.length > 0 ? selectedLanguages.value[0] : availableLanguages.value[0]
-    json = targetLanguage ? csvToJSON(props.csvData, targetLanguage) : {}
+    json = targetLanguage ? csvToJSON(currentCSVData, targetLanguage) : {}
   } else if (props.jsonData) {
     json = props.jsonData
 
@@ -505,8 +533,10 @@ const displayData = computed(() => {
 
   const result = { csv, json }
 
-  // Cache the result for future use
-  displayDataCache.value.set(cacheKey, result)
+  // Cache the result for future use (only when not using store data)
+  if (useCache && cacheKey) {
+    displayDataCache.value.set(cacheKey, result)
+  }
 
   endMeasurement('displayData-computation')
   return result
@@ -577,6 +607,38 @@ function handleLanguageSelectionChange(languages: string[]) {
   selectedLanguages.value = languages
 }
 
+// Language column management
+function handleAddLanguage(language: Language) {
+  // Add to language store
+  languageStore.addTableLanguage(language)
+
+  // Add column to CSV data if available
+  // Use store's CSV data or props CSV data
+  const currentCSVData = translationStore.csvData || props.csvData
+  if (currentCSVData) {
+    // If we haven't set the CSV data in the store yet, set it first
+    if (!translationStore.csvData && props.csvData) {
+      translationStore.setCSVData(props.csvData)
+    }
+    translationStore.addLanguageColumn(language.code, language.name)
+  }
+}
+
+function handleRemoveLanguage(language: Language) {
+  // Remove from language store
+  const removed = languageStore.removeTableLanguage(language)
+
+  // Remove column from CSV data if successfully removed and CSV data is available
+  const currentCSVData = translationStore.csvData || props.csvData
+  if (removed && currentCSVData) {
+    // Ensure CSV data is in store
+    if (!translationStore.csvData && props.csvData) {
+      translationStore.setCSVData(props.csvData)
+    }
+    translationStore.removeLanguageColumn(language.name)
+  }
+}
+
 // Watch for changes in available languages and set default
 watch(availableLanguages, (languages) => {
   if (languages.length > 0 && selectedLanguages.value.length === 0) {
@@ -589,6 +651,35 @@ watch(availableLanguages, (languages) => {
 watch(() => props.jsonData, (jsonData) => {
   if (jsonData && !props.csvData && currentView.value === 'table') {
     setView('csv-table')
+  }
+}, { immediate: true })
+
+// Initialize table languages when CSV data is loaded
+watch(() => props.csvData, (csvData) => {
+  if (csvData && csvData.headers.length > 0) {
+    // Set CSV data in store if not already set
+    if (!translationStore.csvData) {
+      translationStore.setCSVData(csvData)
+    }
+
+    // Map CSV headers to Language objects
+    const languages: Language[] = csvData.headers
+      .map(header => {
+        // Try to find matching language by name
+        return SUPPORTED_LANGUAGES.find(lang =>
+          lang.name.toLowerCase() === header.toLowerCase() ||
+          lang.code.toLowerCase() === header.toLowerCase()
+        )
+      })
+      .filter((lang): lang is Language => lang !== undefined)
+
+    // If we found matching languages, set them as table languages
+    if (languages.length > 0) {
+      languageStore.setTableLanguages(languages)
+    } else {
+      // Default to English if no matching languages found
+      languageStore.setTableLanguages([SUPPORTED_LANGUAGES[0]])
+    }
   }
 }, { immediate: true })
 </script>

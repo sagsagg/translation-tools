@@ -1,42 +1,57 @@
 <template>
   <div class="w-full">
     <!-- Table Controls -->
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex items-center space-x-4">
-        <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium">Show:</label>
-          <Select v-model="pageSize">
-            <SelectTrigger class="w-20">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem :value="10">10</SelectItem>
-              <SelectItem :value="25">25</SelectItem>
-              <SelectItem :value="50">50</SelectItem>
-              <SelectItem :value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-          <span class="text-sm text-gray-600">entries</span>
-        </div>
-
-        <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium">Search:</label>
-          <div class="flex items-center">
-            <Input
-              v-model="localSearchQuery"
-              type="text"
-              placeholder="Search in table..."
-              class="w-64"
-            />
-            <slot name="advanced-search" />
-          </div>
+    <div class="flex flex-col space-y-4 mb-4">
+      <!-- Top Row: Language Management -->
+      <div v-if="allowLanguageManagement" class="flex items-center justify-between">
+        <LanguageColumnManager
+          :current-languages="currentLanguages"
+          @add-language="handleAddLanguage"
+          @remove-language="handleRemoveLanguage"
+        />
+        <div class="text-xs text-slate-500 dark:text-slate-400">
+          {{ currentLanguages.length }} language{{ currentLanguages.length !== 1 ? 's' : '' }} active
         </div>
       </div>
 
-      <div class="flex items-center space-x-2">
-        <span class="text-sm text-gray-600">
-          Showing {{ startIndex + 1 }} to {{ endIndex }} of {{ filteredData.length }} entries
-        </span>
+      <!-- Bottom Row: Standard Controls -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-2">
+            <label class="text-sm font-medium">Show:</label>
+            <Select v-model="pageSize">
+              <SelectTrigger class="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="10">10</SelectItem>
+                <SelectItem :value="25">25</SelectItem>
+                <SelectItem :value="50">50</SelectItem>
+                <SelectItem :value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <span class="text-sm text-gray-600">entries</span>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <label class="text-sm font-medium">Search:</label>
+            <div class="flex items-center">
+              <Input
+                v-model="localSearchQuery"
+                type="text"
+                placeholder="Search in table..."
+                class="w-64"
+              />
+              <slot name="advanced-search" />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <span class="text-sm text-gray-600">
+            Showing {{ startIndex + 1 }} to {{ endIndex }} of {{ filteredData.length }} entries
+          </span>
+        </div>
       </div>
     </div>
 
@@ -122,7 +137,13 @@
                     v-if="row[header] && row[header].trim() !== ''"
                     v-html="highlightText(row[header], localSearchQuery)"
                   />
-                  <span v-else class="text-gray-400">—</span>
+                  <span
+                    v-else
+                    class="text-slate-400 dark:text-slate-500 italic text-xs"
+                    :title="`Add translation for ${header}`"
+                  >
+                    Empty
+                  </span>
                 </div>
               </TableCell>
               <TableCell v-if="showActions">
@@ -229,25 +250,32 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import LanguageColumnManager from '@/components/LanguageColumnManager.vue'
 
-import type { CSVData, CSVRow, SortDirection } from '@/types'
+import type { CSVData, CSVRow, SortDirection, Language } from '@/types'
 import { highlightText } from '@/utils'
 
 interface Props {
   data: CSVData
   searchQuery?: string
   showActions?: boolean
+  allowLanguageManagement?: boolean
+  currentLanguages?: Language[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
   searchQuery: '',
-  showActions: false
+  showActions: false,
+  allowLanguageManagement: false,
+  currentLanguages: () => []
 })
 
 const emit = defineEmits<{
   'edit-row': [row: CSVRow, index: number]
   'delete-row': [row: CSVRow, index: number]
   'sort': [column: string, direction: SortDirection]
+  'add-language': [language: Language]
+  'remove-language': [language: Language]
 }>()
 
 const localSearchQuery = ref(props.searchQuery)
@@ -332,4 +360,13 @@ watch(() => props.searchQuery, (newQuery) => {
 watch([localSearchQuery, pageSize], () => {
   currentPage.value = 1
 })
+
+// Language management handlers
+function handleAddLanguage(language: Language) {
+  emit('add-language', language)
+}
+
+function handleRemoveLanguage(language: Language) {
+  emit('remove-language', language)
+}
 </script>

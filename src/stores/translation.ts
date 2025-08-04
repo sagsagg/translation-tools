@@ -58,7 +58,46 @@ export const useTranslationStore = defineStore('translation', () => {
 
   // Actions
   function setCSVData(data: CSVData | undefined) {
-    csvData.value = data
+    // Create a deep copy to avoid mutating the original data
+    if (data) {
+      csvData.value = {
+        headers: [...data.headers],
+        rows: data.rows.map(row => ({ ...row }))
+      }
+    } else {
+      csvData.value = data
+    }
+  }
+
+  function addLanguageColumn(languageCode: string, languageName: string) {
+    if (!csvData.value) return
+
+    // Add the new language to headers if not already present
+    if (!csvData.value.headers.includes(languageName)) {
+      csvData.value.headers.push(languageName)
+    }
+
+    // Add empty values for the new language in all existing rows
+    csvData.value.rows.forEach(row => {
+      if (!(languageName in row)) {
+        row[languageName] = ''
+      }
+    })
+  }
+
+  function removeLanguageColumn(languageName: string) {
+    if (!csvData.value) return
+
+    // Remove the language from headers
+    const headerIndex = csvData.value.headers.indexOf(languageName)
+    if (headerIndex > -1) {
+      csvData.value.headers.splice(headerIndex, 1)
+    }
+
+    // Remove the language column from all rows
+    csvData.value.rows.forEach(row => {
+      delete row[languageName]
+    })
   }
 
   function setJSONData(data: TranslationData | undefined) {
@@ -317,6 +356,10 @@ export const useTranslationStore = defineStore('translation', () => {
     clearJSONData,
     clearMultiLanguageData,
     clearMultipleJSONData,
+
+    // Language column management
+    addLanguageColumn,
+    removeLanguageColumn,
 
     // Edit/Delete operations
     editTranslationInJSON,

@@ -12,6 +12,7 @@ export const useLanguageStore = defineStore('language', () => {
   // State
   const selectedLanguages = ref<Language[]>([DEFAULT_LANGUAGE])
   const primaryLanguage = ref<Language>(DEFAULT_LANGUAGE)
+  const tableLanguages = ref<Language[]>([DEFAULT_LANGUAGE])
 
   const languageOptions = reactive<LanguageOptions>({
     generateSeparateFiles: true,
@@ -92,6 +93,30 @@ export const useLanguageStore = defineStore('language', () => {
   function updateLanguageSelection(selection: LanguageSelection) {
     selectedLanguages.value = selection.selected
     primaryLanguage.value = selection.primary
+  }
+
+  function addTableLanguage(language: Language) {
+    if (!tableLanguages.value.some(lang => lang.code === language.code)) {
+      tableLanguages.value.push(language)
+    }
+  }
+
+  function removeTableLanguage(language: Language) {
+    // Prevent removing English (primary language) or if it's the only language
+    if (language.code === 'en' || tableLanguages.value.length <= 1) {
+      return false
+    }
+
+    const index = tableLanguages.value.findIndex(lang => lang.code === language.code)
+    if (index > -1) {
+      tableLanguages.value.splice(index, 1)
+      return true
+    }
+    return false
+  }
+
+  function setTableLanguages(languages: Language[]) {
+    tableLanguages.value = languages
   }
 
   function addLanguage(language: Language) {
@@ -199,6 +224,7 @@ export const useLanguageStore = defineStore('language', () => {
     // State
     selectedLanguages,
     primaryLanguage,
+    tableLanguages,
     languageOptions,
     multiLanguageOptions,
 
@@ -222,6 +248,11 @@ export const useLanguageStore = defineStore('language', () => {
     updateMultiLanguageOptions,
     resetToDefaults,
     validateLanguageSelection,
+
+    // Table language management
+    addTableLanguage,
+    removeTableLanguage,
+    setTableLanguages,
 
     // Helper functions
     getLanguageName,
