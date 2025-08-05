@@ -786,13 +786,11 @@ function handleEditRow(row: CSVRow, _index: number) {
 function handleEditRowSave(editData: EditRowData) {
   // Update the CSV data in the store
   if (storeCSVData.value) {
-    const updatedCSVData = { ...storeCSVData.value }
-
     // Find the row to update by matching the original key
-    const rowIndex = updatedCSVData.rows.findIndex(row => row.Key === editData.originalKey)
+    const rowIndex = storeCSVData.value.rows.findIndex(row => row.Key === editData.originalKey)
 
     if (rowIndex !== -1) {
-      // Update the row with new data
+      // Create the updated row with new data
       const updatedRow: CSVRow = { Key: editData.newKey }
 
       // Add all language values
@@ -800,19 +798,27 @@ function handleEditRowSave(editData: EditRowData) {
         updatedRow[lang] = value as string
       })
 
+      // Create a shallow copy of the CSV data for efficient updates
+      const updatedCSVData = {
+        ...storeCSVData.value,
+        rows: [...storeCSVData.value.rows]
+      }
+
+      // Update only the specific row (targeted update)
       updatedCSVData.rows[rowIndex] = updatedRow
 
-      // Update the store
+      // Update the store with optimized data structure
       translationStore.setCSVData(updatedCSVData)
 
       // Sync JSON data to reflect the changes
       syncJSONDataFromCSV()
 
-      // Close the dialog
+      // Close the dialog immediately to prevent any reactivity issues
       isEditRowDialogOpen.value = false
+      currentEditRow.value = undefined
 
-      // Emit the edit event for parent components (backward compatibility)
-      emit('edit-row', updatedRow, rowIndex)
+      // Note: Removed emit('edit-row') to prevent triggering the old edit dialog system
+      // The enhanced EditRowDialog handles the complete edit workflow internally
     }
   }
 }
