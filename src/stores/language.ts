@@ -91,13 +91,15 @@ export const useLanguageStore = defineStore('language', () => {
 
   // Actions
   function updateLanguageSelection(selection: LanguageSelection) {
-    selectedLanguages.value = selection.selected
-    primaryLanguage.value = selection.primary
+    // Create deep copies to avoid mutating the original data
+    selectedLanguages.value = structuredClone(selection.selected)
+    primaryLanguage.value = structuredClone(selection.primary)
   }
 
   function addTableLanguage(language: Language) {
     if (!tableLanguages.value.some(lang => lang.code === language.code)) {
-      tableLanguages.value.push(language)
+      // Create a copy of the language object to avoid mutations
+      tableLanguages.value.push(structuredClone(language))
     }
   }
 
@@ -116,12 +118,14 @@ export const useLanguageStore = defineStore('language', () => {
   }
 
   function setTableLanguages(languages: Language[]) {
-    tableLanguages.value = languages
+    // Create a deep copy to avoid mutating the original array
+    tableLanguages.value = structuredClone(languages)
   }
 
   function addLanguage(language: Language) {
     if (!selectedLanguages.value.some(lang => lang.code === language.code)) {
-      selectedLanguages.value.push(language)
+      // Create a copy of the language object to avoid mutations
+      selectedLanguages.value.push(structuredClone(language))
     }
   }
 
@@ -138,11 +142,12 @@ export const useLanguageStore = defineStore('language', () => {
   }
 
   function setPrimaryLanguage(language: Language) {
-    primaryLanguage.value = language
+    // Create a copy of the language object to avoid mutations
+    primaryLanguage.value = structuredClone(language)
 
     // Ensure the primary language is in the selected languages
     if (!selectedLanguages.value.some(lang => lang.code === language.code)) {
-      selectedLanguages.value.unshift(language)
+      selectedLanguages.value.unshift(structuredClone(language))
     }
   }
 

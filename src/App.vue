@@ -296,6 +296,7 @@ import { useTranslationStore, useLanguageStore, useFileStore, useUIStore, storeT
 import { useMultiLanguage } from '@/composables/useMultiLanguage'
 import { useFileUploadConfirmation } from '@/composables/useFileUploadConfirmation'
 import { useConversion } from '@/composables/useConversion'
+import { SUPPORTED_LANGUAGES } from '@/constants/languages'
 import { toast } from 'vue-sonner'
 import type {
   FileUploadResult,
@@ -333,8 +334,6 @@ const {
 const {
   translationData,
   updateLanguageSelection,
-  loadFromCSV,
-  loadFromJSON,
   exportToCSV,
   exportToMultipleJSON,
   clearAllData: clearMultiLanguageData
@@ -514,17 +513,23 @@ async function handleMultipleJSONUpload(results: FileUploadResult[]) {
     translationStore.setCSVData(mergedCSVData)
     translationStore.setMultiLanguageJSONData(mergedJSONData)
 
+    // Set table languages based on uploaded languages
+    const uploadedLanguageCodes = successfulUploads.map(upload => upload.languageCode)
+    const supportedLanguages = uploadedLanguageCodes.map(code =>
+      SUPPORTED_LANGUAGES.find(sl => sl.code === code) ||
+      { code, name: code, nativeName: code }
+    )
+    languageStore.setTableLanguages(supportedLanguages)
+
     // Also store in multipleJSONData for reference
     const newMultipleData: Record<string, TranslationData> = {}
     for (const upload of successfulUploads) {
       newMultipleData[upload.languageCode] = upload.data
-      // Load into multi-language system
-      loadFromJSON(upload.data, upload.languageCode)
     }
     translationStore.setMultipleJSONData(newMultipleData)
 
-    // Load the merged CSV into the multi-language system
-    loadFromCSV(mergedCSVData)
+    // Note: Removed loadFromJSON() and loadFromCSV() calls to prevent duplicate data loading
+    // DataViewer will handle the data through store reactivity
 
     // Track uploaded files
     const fileSizes = results.map(result =>
@@ -570,8 +575,8 @@ async function processFileResult(result: FileUploadResult) {
       translationStore.clearAllData()
       translationStore.setCSVData(csvData)
 
-      // Load into multi-language system
-      loadFromCSV(csvData)
+      // Note: Removed loadFromCSV() call to prevent duplicate data loading
+      // DataViewer will handle the data through store reactivity
 
       toast.success('CSV file uploaded successfully', {
         description: `Loaded ${csvData.rows.length} translation entries with ${csvData.headers.length} columns`
@@ -594,11 +599,23 @@ async function processFileResult(result: FileUploadResult) {
       translationStore.clearAllData()
       translationStore.setJSONData(jsonData)
 
-      // Determine language code (use fallback if applied, otherwise use primary language)
-      const languageCode = result.languageCode || languageStore.primaryLanguage?.code || 'en'
+      // Convert single JSON to CSV format for language management
+      const language = 'English' // Default language for single JSON files
+      const csvData: CSVData = {
+        headers: ['Key', language],
+        rows: Object.entries(jsonData).map(([key, value]) => ({
+          Key: key,
+          [language]: value
+        }))
+      }
+      translationStore.setCSVData(csvData)
 
-      // Load into multi-language system
-      loadFromJSON(jsonData, languageCode)
+      // Set English as the default table language
+      const englishLang = SUPPORTED_LANGUAGES.find(sl => sl.code === 'en') || SUPPORTED_LANGUAGES[0]
+      languageStore.setTableLanguages([englishLang])
+
+      // Note: Removed loadFromJSON() call to prevent duplicate data loading
+      // DataViewer will handle the data through store reactivity
 
       // Show success message
       const successMessage = result.fallbackApplied

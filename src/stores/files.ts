@@ -94,7 +94,8 @@ export const useFileStore = defineStore('files', () => {
   }
 
   function setLastUploadResult(result: FileUploadResult | null) {
-    lastUploadResult.value = result
+    // Create a deep copy to avoid mutating the original result
+    lastUploadResult.value = result ? structuredClone(result) : result
   }
 
   function addFile(
@@ -122,7 +123,8 @@ export const useFileStore = defineStore('files', () => {
       languageCode: languageCode,
       uploadedAt: new Date(),
       size: fileSize,
-      data: uploadResult.data
+      // Create a deep copy to avoid mutating the original data
+      data: structuredClone(uploadResult.data)
     }
 
     if (existingFileIndex > -1) {
@@ -162,7 +164,8 @@ export const useFileStore = defineStore('files', () => {
       languageCode: languageCode,
       uploadedAt: new Date(),
       size: fileSize,
-      data: uploadResult.data
+      // Create a deep copy to avoid mutating the original data
+      data: structuredClone(uploadResult.data)
     }
 
     const replaced = existingFileIndex > -1
@@ -249,7 +252,8 @@ export const useFileStore = defineStore('files', () => {
   function updateFileData(fileId: string, data: CSVData | TranslationData): boolean {
     const file = uploadedFiles.value.find(f => f.id === fileId)
     if (file) {
-      file.data = data
+      // Create a deep copy to avoid mutating the original data
+      file.data = structuredClone(data)
       return true
     }
     return false

@@ -69,7 +69,7 @@ export const useTranslationStore = defineStore('translation', () => {
     }
   }
 
-  function addLanguageColumn(languageCode: string, languageName: string) {
+  function addLanguageColumn(_languageCode: string, languageName: string) {
     if (!csvData.value) return
 
     // Add the new language to headers if not already present
@@ -101,19 +101,23 @@ export const useTranslationStore = defineStore('translation', () => {
   }
 
   function setJSONData(data: TranslationData | undefined) {
-    jsonData.value = data
+    // Create a deep copy to avoid mutating the original data
+    jsonData.value = data ? structuredClone(data) : data
   }
 
   function setMultiLanguageJSONData(data: MultiLanguageTranslationData | undefined) {
-    multiLanguageJsonData.value = data
+    // Create a deep copy to avoid mutating the original data
+    multiLanguageJsonData.value = data ? structuredClone(data) : data
   }
 
   function setMultipleJSONData(data: Record<string, TranslationData>) {
-    multipleJsonData.value = data
+    // Create a deep copy to avoid mutating the original data
+    multipleJsonData.value = structuredClone(data)
   }
 
   function addToMultipleJSONData(languageCode: string, data: TranslationData) {
-    multipleJsonData.value[languageCode] = data
+    // Create a deep copy to avoid mutating the original data
+    multipleJsonData.value[languageCode] = structuredClone(data)
   }
 
   function removeFromMultipleJSONData(languageCode: string) {

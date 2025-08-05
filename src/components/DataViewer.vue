@@ -83,7 +83,7 @@
           :show-actions="editable"
           :allow-language-management="true"
           :current-languages="tableLanguages"
-          @edit-row="(row, index) => emit('edit-row', row, index)"
+          @edit-row="handleEditRow"
           @delete-row="(row, index) => emit('delete-row', row, index)"
           @add-language="handleAddLanguage"
           @remove-language="handleRemoveLanguage"
@@ -222,7 +222,7 @@
             :show-actions="editable"
             :allow-language-management="true"
             :current-languages="tableLanguages"
-            @edit-row="(row, index) => emit('edit-row', row, index)"
+            @edit-row="handleEditRow"
             @delete-row="(row, index) => emit('delete-row', row, index)"
             @add-language="handleAddLanguage"
             @remove-language="handleRemoveLanguage"
@@ -273,7 +273,7 @@
             :show-actions="editable"
             :allow-language-management="true"
             :current-languages="tableLanguages"
-            @edit-row="(row, index) => emit('edit-row', row, index)"
+            @edit-row="handleEditRow"
             @delete-row="(row, index) => emit('delete-row', row, index)"
             @add-language="handleAddLanguage"
             @remove-language="handleRemoveLanguage"
@@ -314,6 +314,16 @@
       </div>
     </div>
   </div>
+
+  <!-- Enhanced Edit Row Dialog -->
+  <EditRowDialog
+    v-if="isEditRowDialogOpen && currentEditRow"
+    v-model:open="isEditRowDialogOpen"
+    :original-row="currentEditRow"
+    :all-languages="allLanguagesForEdit"
+    @save="handleEditRowSave"
+    @cancel="handleEditRowCancel"
+  />
 </template>
 
 <script setup lang="ts">
@@ -324,8 +334,16 @@ import LanguageMultiSelect from './LanguageMultiSelect.vue'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import AdvancedSearchSheet from './AdvancedSearchSheet.vue'
+import EditRowDialog from './EditRowDialog.vue'
 import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow, Language } from '@/types'
-import { csvToJSON, getLanguagesFromCSV } from '@/utils/csv'
+
+interface EditRowData {
+  originalKey: string
+  newKey: string
+  originalLanguages: Record<string, string>
+  newLanguages: Record<string, string>
+}
+import { csvToJSON, csvToMultiLanguageJSON, getLanguagesFromCSV } from '@/utils/csv'
 import { useSearch } from '@/composables/useSearch'
 import { memoizedTransforms } from '@/utils/memoization'
 import { useTranslationStore, useLanguageStore, storeToRefs } from '@/stores'
@@ -359,12 +377,26 @@ const emit = defineEmits<{
 // Store integration
 const translationStore = useTranslationStore()
 const languageStore = useLanguageStore()
+const {
+  csvData: storeCSVData,
+  jsonData: storeJSONData,
+  multiLanguageJsonData: storeMultiLanguageJSONData
+} = storeToRefs(translationStore)
 const { tableLanguages } = storeToRefs(languageStore)
 
 // Initialize store data based on props - ensures language column management works for all file types
 function initializeStoreData() {
+  // Prevent recursive updates: only initialize if store doesn't have data
+  // This prevents the watcher from triggering itself when store is updated
+  if (translationStore.hasData) {
+    return
+  }
+
   // Priority: multiLanguageJsonData > csvData > jsonData
   if (props.multiLanguageJsonData && Object.keys(props.multiLanguageJsonData).length > 0) {
+    // Store multi-language JSON data in store
+    translationStore.setMultiLanguageJSONData(props.multiLanguageJsonData)
+
     // Convert multi-language JSON to CSV and store it
     const languages = Object.keys(props.multiLanguageJsonData).sort()
     const csvData = memoizedTransforms.jsonToCSV(props.multiLanguageJsonData, languages)
@@ -388,6 +420,9 @@ function initializeStoreData() {
     )
     languageStore.setTableLanguages(supportedLanguages)
   } else if (props.jsonData && Object.keys(props.jsonData).length > 0) {
+    // Store single JSON data in store
+    translationStore.setJSONData(props.jsonData)
+
     // Convert single JSON to CSV format and store it
     const language = 'English' // Default language for single JSON files
     const csvData: CSVData = {
@@ -407,6 +442,10 @@ function initializeStoreData() {
 
 const currentView = ref<ViewMode>(props.defaultView)
 const selectedLanguages = ref<string[]>([])
+
+// Edit row dialog state
+const isEditRowDialogOpen = ref(false)
+const currentEditRow = ref<CSVRow>()
 
 // Performance monitoring removed from computed to avoid side effects
 
@@ -438,78 +477,137 @@ const hasQuery = computed(() => searchQueryFromComposable.value.trim().length > 
 const hasResults = computed(() => searchResults.value.length > 0)
 
 const availableLanguages = computed(() => {
-  if (props.multiLanguageJsonData) {
-    return memoizedTransforms.getLanguages(props.multiLanguageJsonData)
+  // Use store data if available, otherwise use props (reactive to store changes)
+  const currentMultiLanguageJSONData = storeMultiLanguageJSONData.value || props.multiLanguageJsonData
+  const currentCSVData = storeCSVData.value || props.csvData
+
+  if (currentMultiLanguageJSONData) {
+    // For multi-language JSON, convert language codes to language names for consistency
+    const languageCodes = memoizedTransforms.getLanguages(currentMultiLanguageJSONData)
+    return languageCodes.map(code => {
+      const language = SUPPORTED_LANGUAGES.find(sl => sl.code === code)
+      return language ? language.name : code
+    })
   }
-  if (props.csvData) {
-    return getLanguagesFromCSV(props.csvData)
+  if (currentCSVData) {
+    // For CSV, return language column names (already human-readable)
+    return getLanguagesFromCSV(currentCSVData)
   }
   return []
 })
 
 const totalEntries = computed(() => {
-  if (props.multiLanguageJsonData) {
-    return memoizedTransforms.countKeys(props.multiLanguageJsonData)
+  // Use store data if available, otherwise use props (reactive to store changes)
+  const currentMultiLanguageJSONData = storeMultiLanguageJSONData.value || props.multiLanguageJsonData
+  const currentCSVData = storeCSVData.value || props.csvData
+  const currentJSONData = storeJSONData.value || props.jsonData
+
+  if (currentMultiLanguageJSONData) {
+    return memoizedTransforms.countKeys(currentMultiLanguageJSONData)
   }
-  if (props.csvData) {
-    return props.csvData.rows.length
+  if (currentCSVData) {
+    return currentCSVData.rows.length
   }
-  if (props.jsonData) {
-    return Object.keys(props.jsonData).length
+  if (currentJSONData) {
+    return Object.keys(currentJSONData).length
   }
   return 0
+})
+
+// Computed property for all languages available for editing (not affected by filters)
+const allLanguagesForEdit = computed(() => {
+  // Get all language columns from the store data (unfiltered)
+  const currentCSVData = storeCSVData.value || props.csvData
+  if (currentCSVData && currentCSVData.headers.length > 0) {
+    // Return all headers except 'Key'
+    return currentCSVData.headers.filter(header => header.toLowerCase() !== 'key')
+  }
+  return []
 })
 
 // Cache removed to eliminate side effects in computed properties
 
 const displayData = computed(() => {
-  // Use store's CSV data if available, otherwise use props
-  const currentCSVData = translationStore.csvData || props.csvData
+  // Use store data if available, otherwise use props
+  // Using reactive store references to ensure reactivity to store changes
+  const currentCSVData = storeCSVData.value || props.csvData
+  const currentMultiLanguageJSONData = storeMultiLanguageJSONData.value || props.multiLanguageJsonData
+  const currentJSONData = storeJSONData.value || props.jsonData
 
   let csv: CSVData
   let json: TranslationData | MultiLanguageTranslationData
 
-  if (props.multiLanguageJsonData) {
+  if (currentMultiLanguageJSONData) {
     // Handle multi-language JSON data (from multiple JSON file uploads)
     // This takes priority over csvData when both are present
 
     // Apply language filtering to JSON data
     if (selectedLanguages.value.length > 0 && selectedLanguages.value.length < availableLanguages.value.length) {
       // Filter to show only selected languages
+      // Convert language names back to language codes for JSON data access
       const filteredJson: MultiLanguageTranslationData = {}
-      for (const language of selectedLanguages.value) {
-        if (language in props.multiLanguageJsonData) {
-          filteredJson[language] = props.multiLanguageJsonData[language]
+      for (const languageName of selectedLanguages.value) {
+        // Find the language code for this language name
+        const language = SUPPORTED_LANGUAGES.find(sl => sl.name === languageName)
+        const languageCode = language ? language.code : languageName
+
+        if (languageCode in currentMultiLanguageJSONData) {
+          filteredJson[languageCode] = currentMultiLanguageJSONData[languageCode]
         }
       }
       json = filteredJson
     } else {
       // Show all languages when no filter applied or all languages selected
-      json = props.multiLanguageJsonData
+      json = currentMultiLanguageJSONData
     }
 
-    // Convert multi-language JSON to CSV for table view using memoized function
-    const languages = selectedLanguages.value.length > 0 && selectedLanguages.value.length < availableLanguages.value.length
-      ? selectedLanguages.value.filter(lang => props.multiLanguageJsonData && lang in props.multiLanguageJsonData).sort()
-      : Object.keys(props.multiLanguageJsonData).sort()
+    // Convert multi-language JSON to CSV for table view
+    // Create a custom conversion that uses language names as headers but language codes for data access
+    const selectedLanguageCodes = selectedLanguages.value.length > 0 && selectedLanguages.value.length < availableLanguages.value.length
+      ? selectedLanguages.value.map(languageName => {
+          const language = SUPPORTED_LANGUAGES.find(sl => sl.name === languageName)
+          return language ? language.code : languageName
+        }).filter(code => currentMultiLanguageJSONData && code in currentMultiLanguageJSONData).sort()
+      : Object.keys(currentMultiLanguageJSONData).sort()
 
-    csv = memoizedTransforms.jsonToCSV(props.multiLanguageJsonData, languages)
+    // Create CSV with language names as headers
+    const allKeys = new Set<string>()
+    for (const languageCode of selectedLanguageCodes) {
+      if (currentMultiLanguageJSONData[languageCode]) {
+        Object.keys(currentMultiLanguageJSONData[languageCode]).forEach(key => allKeys.add(key))
+      }
+    }
+
+    const languageNames = selectedLanguageCodes.map(code => {
+      const language = SUPPORTED_LANGUAGES.find(sl => sl.code === code)
+      return language ? language.name : code
+    })
+
+    csv = {
+      headers: ['Key', ...languageNames],
+      rows: Array.from(allKeys).sort().map(key => {
+        const row: CSVRow = { Key: key }
+        selectedLanguageCodes.forEach((code, index) => {
+          const languageName = languageNames[index]
+          row[languageName] = currentMultiLanguageJSONData[code]?.[key] || ''
+        })
+        return row
+      })
+    }
   } else if (currentCSVData) {
     csv = currentCSVData
 
-    // Only filter CSV data if we have selected languages and they're different from available languages
-    // This prevents filtering out newly added language columns
+    // Filter CSV data if we have selected languages and they're different from available languages
     if (selectedLanguages.value.length > 0 &&
-        selectedLanguages.value.length < availableLanguages.value.length &&
-        !translationStore.csvData) { // Don't filter store data to preserve new columns
+        selectedLanguages.value.length < availableLanguages.value.length) {
       csv = memoizedTransforms.filterCSV(currentCSVData, selectedLanguages.value)
     }
 
     // Convert CSV to JSON for JSON view (use first selected language or first available)
     const targetLanguage = selectedLanguages.value.length > 0 ? selectedLanguages.value[0] : availableLanguages.value[0]
     json = targetLanguage ? csvToJSON(currentCSVData, targetLanguage) : {}
-  } else if (props.jsonData) {
-    json = props.jsonData
+  } else if (currentJSONData) {
+    json = currentJSONData
 
     // Convert JSON to CSV for table view (always show English for JSON files)
     const language = 'English'
@@ -533,16 +631,13 @@ const displayData = computed(() => {
   return result
 })
 
-// Initialize store data when component mounts or props change
-initializeStoreData()
-
-// Watch for prop changes and reinitialize store data
+// Watch for prop changes and initialize store data (including initial mount)
 watch(
   () => [props.csvData, props.jsonData, props.multiLanguageJsonData],
   () => {
     initializeStoreData()
   },
-  { deep: true }
+  { deep: true, immediate: true }
 )
 
 function setView(view: ViewMode) {
@@ -611,19 +706,51 @@ function handleLanguageSelectionChange(languages: string[]) {
   selectedLanguages.value = languages
 }
 
+// Helper function to sync JSON data when CSV changes
+function syncJSONDataFromCSV() {
+  if (!storeCSVData.value) return
+
+  // If we have multi-language JSON data, update it from CSV
+  if (storeMultiLanguageJSONData.value) {
+    const updatedMultiLanguageJSON = csvToMultiLanguageJSON(storeCSVData.value)
+    translationStore.setMultiLanguageJSONData(updatedMultiLanguageJSON)
+  }
+
+  // If we have single JSON data, update it from CSV (use first language column)
+  if (storeJSONData.value && storeCSVData.value.headers.length > 1) {
+    const firstLanguage = storeCSVData.value.headers[1] // Skip 'Key' column
+    const updatedJSON = csvToJSON(storeCSVData.value, firstLanguage)
+    translationStore.setJSONData(updatedJSON)
+  }
+}
+
 // Language column management
 function handleAddLanguage(language: Language) {
   // Add to language store
   languageStore.addTableLanguage(language)
 
   // Add column to CSV data - store should always have CSV data after initialization
-  if (translationStore.csvData) {
+  if (storeCSVData.value) {
     translationStore.addLanguageColumn(language.code, language.name)
+    // Sync JSON data to reflect the new language column
+    syncJSONDataFromCSV()
   } else {
-    // Fallback: try to initialize store data
-    initializeStoreData()
-    if (translationStore.csvData) {
+    // Fallback: try to initialize store data only if no data exists
+    if (!translationStore.hasData) {
+      initializeStoreData()
+    }
+    if (storeCSVData.value) {
       translationStore.addLanguageColumn(language.code, language.name)
+      // Sync JSON data to reflect the new language column
+      syncJSONDataFromCSV()
+    }
+  }
+
+  // Auto-include newly added language in selection if filtering is active
+  // This ensures the new language column is immediately visible
+  if (selectedLanguages.value.length > 0 && selectedLanguages.value.length < availableLanguages.value.length) {
+    if (!selectedLanguages.value.includes(language.name) && !selectedLanguages.value.includes(language.code)) {
+      selectedLanguages.value = [...selectedLanguages.value, language.name]
     }
   }
 }
@@ -633,14 +760,66 @@ function handleRemoveLanguage(language: Language) {
   const removed = languageStore.removeTableLanguage(language)
 
   // Remove column from CSV data if successfully removed and CSV data is available
-  const currentCSVData = translationStore.csvData || props.csvData
+  const currentCSVData = storeCSVData.value || props.csvData
   if (removed && currentCSVData) {
     // Ensure CSV data is in store
-    if (!translationStore.csvData && props.csvData) {
+    if (!storeCSVData.value && props.csvData) {
       translationStore.setCSVData(props.csvData)
     }
     translationStore.removeLanguageColumn(language.name)
+    // Sync JSON data to reflect the removed language column
+    syncJSONDataFromCSV()
+
+    // Remove language from selection if it was selected
+    selectedLanguages.value = selectedLanguages.value.filter(
+      lang => lang !== language.name && lang !== language.code
+    )
   }
+}
+
+// Enhanced edit row functionality
+function handleEditRow(row: CSVRow, _index: number) {
+  currentEditRow.value = { ...row }
+  isEditRowDialogOpen.value = true
+}
+
+function handleEditRowSave(editData: EditRowData) {
+  // Update the CSV data in the store
+  if (storeCSVData.value) {
+    const updatedCSVData = { ...storeCSVData.value }
+
+    // Find the row to update by matching the original key
+    const rowIndex = updatedCSVData.rows.findIndex(row => row.Key === editData.originalKey)
+
+    if (rowIndex !== -1) {
+      // Update the row with new data
+      const updatedRow: CSVRow = { Key: editData.newKey }
+
+      // Add all language values
+      Object.entries(editData.newLanguages).forEach(([lang, value]) => {
+        updatedRow[lang] = value as string
+      })
+
+      updatedCSVData.rows[rowIndex] = updatedRow
+
+      // Update the store
+      translationStore.setCSVData(updatedCSVData)
+
+      // Sync JSON data to reflect the changes
+      syncJSONDataFromCSV()
+
+      // Close the dialog
+      isEditRowDialogOpen.value = false
+
+      // Emit the edit event for parent components (backward compatibility)
+      emit('edit-row', updatedRow, rowIndex)
+    }
+  }
+}
+
+function handleEditRowCancel() {
+  isEditRowDialogOpen.value = false
+  currentEditRow.value = undefined;
 }
 
 // Watch for changes in available languages and set default
