@@ -263,7 +263,12 @@ export const useTranslationStore = defineStore('translation', () => {
         return { success: false, error: 'Translation key not found' }
       }
 
-      delete jsonData.value[key]
+      // Create immutable update by filtering out the key
+      const updatedData = { ...jsonData.value }
+      delete updatedData[key]
+
+      // Update store to trigger reactivity
+      setJSONData(updatedData)
       return { success: true }
     } catch (error) {
       return {
@@ -281,13 +286,21 @@ export const useTranslationStore = defineStore('translation', () => {
     try {
       const { key } = deleteData
 
-      // Find and remove the row with the specified key
+      // Find the row to delete by matching the key
       const rowIndex = csvData.value.rows.findIndex(row => row.Key === key)
       if (rowIndex === -1) {
         return { success: false, error: 'Translation key not found' }
       }
 
-      csvData.value.rows.splice(rowIndex, 1)
+      // Create a new CSV data object with the row removed (immutable update)
+      const updatedCSVData = {
+        ...csvData.value,
+        rows: csvData.value.rows.filter(row => row.Key !== key)
+      }
+
+      // Update the store with the new data to trigger reactivity
+      setCSVData(updatedCSVData)
+
       return { success: true }
     } catch (error) {
       return {
@@ -308,22 +321,36 @@ export const useTranslationStore = defineStore('translation', () => {
       if (language) {
         // Delete from specific language
         if (language in multiLanguageJsonData.value && key in multiLanguageJsonData.value[language]) {
-          delete multiLanguageJsonData.value[language][key]
+          // Create immutable update for specific language
+          const updatedData = { ...multiLanguageJsonData.value }
+          updatedData[language] = { ...updatedData[language] }
+          delete updatedData[language][key]
+
+          // Update store to trigger reactivity
+          setMultiLanguageJSONData(updatedData)
           return { success: true }
         }
         return { success: false, error: 'Translation key not found in specified language' }
       } else {
         // Delete from all languages
         let deleted = false
-        Object.keys(multiLanguageJsonData.value).forEach(lang => {
-          if (key in multiLanguageJsonData.value![lang]) {
-            delete multiLanguageJsonData.value![lang][key]
+        const updatedData = { ...multiLanguageJsonData.value }
+
+        Object.keys(updatedData).forEach(lang => {
+          if (key in updatedData[lang]) {
+            updatedData[lang] = { ...updatedData[lang] }
+            delete updatedData[lang][key]
             deleted = true
           }
         })
-        return deleted
-          ? { success: true }
-          : { success: false, error: 'Translation key not found in any language' }
+
+        if (deleted) {
+          // Update store to trigger reactivity
+          setMultiLanguageJSONData(updatedData)
+          return { success: true }
+        }
+
+        return { success: false, error: 'Translation key not found in any language' }
       }
     } catch (error) {
       return {

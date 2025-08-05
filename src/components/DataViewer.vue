@@ -84,7 +84,7 @@
           :allow-language-management="true"
           :current-languages="tableLanguages"
           @edit-row="handleEditRow"
-          @delete-row="(row, index) => emit('delete-row', row, index)"
+          @delete-row="handleDeleteRow"
           @add-language="handleAddLanguage"
           @remove-language="handleRemoveLanguage"
           @sort="(column, direction) => emit('sort', column, direction)"
@@ -223,7 +223,7 @@
             :allow-language-management="true"
             :current-languages="tableLanguages"
             @edit-row="handleEditRow"
-            @delete-row="(row, index) => emit('delete-row', row, index)"
+            @delete-row="handleDeleteRow"
             @add-language="handleAddLanguage"
             @remove-language="handleRemoveLanguage"
             @sort="(column, direction) => emit('sort', column, direction)"
@@ -274,7 +274,7 @@
             :allow-language-management="true"
             :current-languages="tableLanguages"
             @edit-row="handleEditRow"
-            @delete-row="(row, index) => emit('delete-row', row, index)"
+            @delete-row="handleDeleteRow"
             @add-language="handleAddLanguage"
             @remove-language="handleRemoveLanguage"
             @sort="(column, direction) => emit('sort', column, direction)"
@@ -324,6 +324,17 @@
     @save="handleEditRowSave"
     @cancel="handleEditRowCancel"
   />
+
+  <!-- Enhanced Delete Row Dialog -->
+  <DeleteConfirmationDialog
+    v-if="isDeleteRowDialogOpen && currentDeleteRow"
+    v-model:open="isDeleteRowDialogOpen"
+    :translation-key="currentDeleteRow.Key || ''"
+    :translation-value="getFirstLanguageValue(currentDeleteRow)"
+    :language="getFirstLanguageName()"
+    @delete="handleDeleteRowConfirm"
+    @cancel="handleDeleteRowCancel"
+  />
 </template>
 
 <script setup lang="ts">
@@ -335,6 +346,7 @@ import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import AdvancedSearchSheet from './AdvancedSearchSheet.vue'
 import EditRowDialog from './EditRowDialog.vue'
+import DeleteConfirmationDialog from './DeleteConfirmationDialog.vue'
 import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow, Language } from '@/types'
 
 interface EditRowData {
@@ -446,6 +458,10 @@ const selectedLanguages = ref<string[]>([])
 // Edit row dialog state
 const isEditRowDialogOpen = ref(false)
 const currentEditRow = ref<CSVRow>()
+
+// Delete row dialog state
+const isDeleteRowDialogOpen = ref(false)
+const currentDeleteRow = ref<CSVRow>()
 
 // Performance monitoring removed from computed to avoid side effects
 
@@ -826,6 +842,56 @@ function handleEditRowSave(editData: EditRowData) {
 function handleEditRowCancel() {
   isEditRowDialogOpen.value = false
   currentEditRow.value = undefined;
+}
+
+// Enhanced delete row functionality
+function handleDeleteRow(row: CSVRow, _index: number) {
+  currentDeleteRow.value = { ...row }
+  isDeleteRowDialogOpen.value = true
+}
+
+function handleDeleteRowConfirm(deleteData: { key: string; value: string; language?: string }) {
+  // Handle delete operation with store integration
+  if (storeCSVData.value) {
+    // Call the store delete method
+    const result = translationStore.deleteTranslationFromCSV(deleteData)
+
+    if (result.success) {
+      // Sync JSON data to reflect the deletion
+      syncJSONDataFromCSV()
+
+      // Close the dialog
+      isDeleteRowDialogOpen.value = false
+      currentDeleteRow.value = undefined
+
+      // Note: Removed emit('delete-row') to prevent triggering the old delete dialog system
+      // The enhanced delete functionality handles the complete workflow internally
+    } else {
+      console.error('Failed to delete row:', result.error)
+    }
+  } else {
+    // Fallback to old system for non-store data
+    if (currentDeleteRow.value) {
+      emit('delete-row', currentDeleteRow.value, 0)
+    }
+    isDeleteRowDialogOpen.value = false
+    currentDeleteRow.value = undefined
+  }
+}
+
+function handleDeleteRowCancel() {
+  isDeleteRowDialogOpen.value = false
+  currentDeleteRow.value = undefined
+}
+
+// Helper functions for delete dialog
+function getFirstLanguageValue(row: CSVRow): string {
+  const firstLanguageColumn = allLanguagesForEdit.value[0]
+  return firstLanguageColumn ? (row[firstLanguageColumn] || '') : ''
+}
+
+function getFirstLanguageName(): string {
+  return allLanguagesForEdit.value[0] || ''
 }
 
 // Watch for changes in available languages and set default
