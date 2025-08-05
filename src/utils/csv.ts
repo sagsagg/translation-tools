@@ -6,7 +6,14 @@ export function parseCSV(content: string): CSVData {
   const result = Papa.parse(content, {
     header: true,
     skipEmptyLines: true,
-    transformHeader: (header: string) => header.trim()
+    transformHeader: (header: string) => {
+      const trimmed = header.trim()
+      // Normalize the key column header to "Key" (uppercase)
+      if (trimmed.toLowerCase() === 'key') {
+        return 'Key'
+      }
+      return trimmed
+    }
   })
 
   if (result.errors.length > 0) {

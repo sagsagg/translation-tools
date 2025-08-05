@@ -34,9 +34,9 @@
           <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 border-b pb-2">
             Language Translations
           </h3>
-          
-          <div 
-            v-for="language in allLanguages" 
+
+          <div
+            v-for="language in allLanguages"
             :key="language"
             class="space-y-2"
           >
@@ -148,13 +148,13 @@ const isSubmitting = ref(false)
 const hasChanges = computed(() => {
   const originalKey = props.originalRow.Key || ''
   const keyChanged = formData.value.key !== originalKey
-  
+
   const languagesChanged = props.allLanguages.some(lang => {
     const originalValue = props.originalRow[lang] || ''
     const newValue = formData.value.languages[lang] || ''
     return originalValue !== newValue
   })
-  
+
   return keyChanged || languagesChanged
 })
 
@@ -163,21 +163,21 @@ const isValid = computed(() => {
   if (!formData.value.key.trim()) {
     return false
   }
-  
+
   // English is required (if it exists in languages)
   if (props.allLanguages.includes('English') && !formData.value.languages['English']?.trim()) {
     return false
   }
-  
+
   // No validation errors
   if (errors.value.key) {
     return false
   }
-  
+
   if (Object.values(errors.value.languages).some(error => error)) {
     return false
   }
-  
+
   return true
 })
 
@@ -188,13 +188,13 @@ watch(() => [props.originalRow, props.allLanguages], () => {
 
 function resetForm() {
   formData.value.key = props.originalRow.Key || ''
-  
+
   // Initialize all language fields
   formData.value.languages = {}
   props.allLanguages.forEach(lang => {
     formData.value.languages[lang] = props.originalRow[lang] || ''
   })
-  
+
   // Clear errors
   errors.value.key = ''
   errors.value.languages = {}
@@ -202,45 +202,45 @@ function resetForm() {
 
 function validateKey() {
   errors.value.key = ''
-  
+
   if (!formData.value.key.trim()) {
     errors.value.key = 'Translation key is required'
     return false
   }
-  
+
   if (formData.value.key.trim().length < 2) {
     errors.value.key = 'Translation key must be at least 2 characters'
     return false
   }
-  
+
   return true
 }
 
 function validateLanguage(language: string) {
   errors.value.languages[language] = ''
-  
+
   // English is required
   if (language === 'English' && !formData.value.languages[language]?.trim()) {
     errors.value.languages[language] = 'English translation is required'
     return false
   }
-  
+
   return true
 }
 
 function validateForm(): boolean {
   let isValid = true
-  
+
   if (!validateKey()) {
     isValid = false
   }
-  
+
   props.allLanguages.forEach(lang => {
     if (!validateLanguage(lang)) {
       isValid = false
     }
   })
-  
+
   return isValid
 }
 

@@ -374,13 +374,9 @@ const hasData = computed(() => translationStore.hasData)
 
 // Helper function to get language name from language code
 function getLanguageName(code: string): string {
-  const languageMap: Record<string, string> = {
-    'en': 'English',
-    'id': 'Indonesian',
-    'zh-cn': 'Chinese_Simplified',
-    'zh-tw': 'Chinese_Traditional'
-  }
-  return languageMap[code] || code
+  // Use the SUPPORTED_LANGUAGES constant for consistency
+  const language = SUPPORTED_LANGUAGES.find(sl => sl.code.toLowerCase() === code.toLowerCase())
+  return language ? language.name : code
 }
 
 // Helper function to merge multiple JSON files into CSV structure
