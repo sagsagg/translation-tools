@@ -242,6 +242,7 @@
 
   <!-- Replace Data Confirmation Dialog -->
   <ReplaceDataConfirmDialog
+    v-if="isConfirmDialogOpen"
     v-model:open="isConfirmDialogOpen"
     @confirm="handleConfirmation"
     @cancel="handleCancellation"
@@ -272,26 +273,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import 'vue-sonner/style.css'
-
 import { Info } from 'lucide-vue-next'
-
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import LanguageSelector from '@/components/LanguageSelector.vue'
 import FileUploader from '@/components/FileUploader.vue'
 import TextInput from '@/components/TextInput.vue'
-import UploadedFilesList from '@/components/UploadedFilesList.vue'
-import LanguageSelectorSheet from '@/components/LanguageSelectorSheet.vue'
 import SupportedLanguagesDialog from '@/components/SupportedLanguagesDialog.vue'
-import DataViewer from '@/components/DataViewer.vue'
-import ReplaceDataConfirmDialog from '@/components/ReplaceDataConfirmDialog.vue'
-import EditTranslationDialog from '@/components/EditTranslationDialog.vue'
-import DeleteConfirmationDialog from '@/components/DeleteConfirmationDialog.vue'
 import { useTranslationStore, useLanguageStore, useFileStore, useUIStore, storeToRefs } from '@/stores'
 import { useMultiLanguage } from '@/composables/useMultiLanguage'
 import { useFileUploadConfirmation } from '@/composables/useFileUploadConfirmation'
@@ -311,6 +304,13 @@ import type {
   EditTranslationData,
   DeleteTranslationData
 } from '@/types'
+
+const DataViewer = defineAsyncComponent(() => import('@/components/DataViewer.vue'));
+const DeleteConfirmationDialog = defineAsyncComponent(() => import('@/components/DeleteConfirmationDialog.vue'));
+const EditTranslationDialog = defineAsyncComponent(() => import('@/components/EditTranslationDialog.vue'));
+const ReplaceDataConfirmDialog = defineAsyncComponent(() => import('@/components/ReplaceDataConfirmDialog.vue'));
+const LanguageSelectorSheet = defineAsyncComponent(() => import('@/components/LanguageSelectorSheet.vue'));
+const UploadedFilesList = defineAsyncComponent(() => import('@/components/UploadedFilesList.vue'));
 
 // Initialize Pinia stores
 const translationStore = useTranslationStore()

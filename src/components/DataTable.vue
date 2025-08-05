@@ -218,7 +218,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, defineAsyncComponent } from 'vue'
 import {
   Table,
   TableBody,
@@ -236,7 +236,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import LanguageColumnManager from '@/components/LanguageColumnManager.vue'
 
 import type { CSVData, CSVRow, SortDirection, Language } from '@/types'
 import { highlightText } from '@/utils'
@@ -262,7 +261,9 @@ const emit = defineEmits<{
   'sort': [column: string, direction: SortDirection]
   'add-language': [language: Language]
   'remove-language': [language: Language]
-}>()
+}>();
+
+const LanguageColumnManager = defineAsyncComponent(() => import('@/components/LanguageColumnManager.vue'));
 
 const localSearchQuery = ref(props.searchQuery)
 const sortColumn = ref<string>('')

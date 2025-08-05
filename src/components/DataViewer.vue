@@ -78,6 +78,7 @@
       <!-- Table View -->
       <div v-if="currentView === 'table'" class="w-full">
         <DataTable
+          v-if="displayData.csv"
           :data="displayData.csv"
           :search-query="searchQueryFromComposable"
           :show-actions="editable"
@@ -192,6 +193,7 @@
             <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Table View</h3>
             <div class="border rounded overflow-hidden p-2">
               <DataTable
+                v-if="displayData.csv"
                 :data="displayData.csv"
                 :search-query="searchQueryFromComposable"
                 :show-actions="false"
@@ -217,6 +219,7 @@
         <div class="space-y-2">
           <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 border-b pb-2">CSV Table View</h3>
           <DataTable
+            v-if="displayData.csv"
             :data="displayData.csv"
             :search-query="searchQueryFromComposable"
             :show-actions="editable"
@@ -257,6 +260,7 @@
         <div class="space-y-2">
           <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 border-b pb-2">JSON View</h3>
           <JsonViewer
+            v-if="displayData?.json"
             :data="displayData.json"
             :search-query="searchQueryFromComposable"
             :editable="editable"
@@ -268,6 +272,7 @@
         <div class="space-y-2">
           <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 border-b pb-2">Table View (English)</h3>
           <DataTable
+            v-if="displayData.csv"
             :data="displayData.csv"
             :search-query="searchQueryFromComposable"
             :show-actions="editable"
@@ -338,15 +343,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
-import DataTable from './DataTable.vue'
-import JsonViewer from './JsonViewer.vue'
+import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import LanguageMultiSelect from './LanguageMultiSelect.vue'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import AdvancedSearchSheet from './AdvancedSearchSheet.vue'
-import EditRowDialog from './EditRowDialog.vue'
-import DeleteConfirmationDialog from './DeleteConfirmationDialog.vue'
 import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow, Language } from '@/types'
 
 interface EditRowData {
@@ -385,6 +386,11 @@ const emit = defineEmits<{
   'sort': [column: string, direction: 'asc' | 'desc']
   'view-change': [view: ViewMode]
 }>()
+
+const EditRowDialog = defineAsyncComponent(() => import('./EditRowDialog.vue'));
+const DeleteConfirmationDialog = defineAsyncComponent(() => import('./DeleteConfirmationDialog.vue'));
+const JsonViewer = defineAsyncComponent(() => import('./JsonViewer.vue'));
+const DataTable = defineAsyncComponent(() => import('./DataTable.vue'));
 
 // Store integration
 const translationStore = useTranslationStore()
