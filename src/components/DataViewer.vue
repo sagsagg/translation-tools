@@ -343,7 +343,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
+import { ref, computed, watch, defineAsyncComponent } from 'vue'
 import LanguageMultiSelect from './LanguageMultiSelect.vue'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -541,7 +541,7 @@ const allLanguagesForEdit = computed(() => {
   // Get all language columns from the store data (unfiltered)
   const currentCSVData = storeCSVData.value || props.csvData
   if (currentCSVData && currentCSVData.headers.length > 0) {
-    // Return all headers except 'Key'
+    // Return all headers except 'Key' (data is already in correct order from file processing)
     return currentCSVData.headers.filter(header => header.toLowerCase() !== 'key')
   }
   return []
@@ -945,8 +945,4 @@ watch(() => props.csvData, (csvData) => {
     }
   }
 }, { immediate: true })
-
-onMounted(() => {
-  console.log('DataViewer mounted');
-})
 </script>

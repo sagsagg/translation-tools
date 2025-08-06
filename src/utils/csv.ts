@@ -2,6 +2,34 @@ import Papa from 'papaparse'
 import type { CSVData, CSVRow, TranslationData, Language } from '@/types'
 import { mapLanguageNameToCode } from '@/constants/languages'
 
+// Utility function to reorder columns with English priority
+function reorderColumnsWithEnglishPriority(headers: string[]): string[] {
+  const keyColumn = headers.find(header => header.toLowerCase() === 'key')
+  const languageColumns = headers.filter(header => header.toLowerCase() !== 'key')
+
+  // Find English column (case-insensitive)
+  const englishColumn = languageColumns.find(header => header.toLowerCase() === 'english')
+  const otherLanguageColumns = languageColumns.filter(header => header.toLowerCase() !== 'english')
+
+  // Build the reordered headers array
+  const reorderedHeaders = []
+
+  // Add Key column first (if present)
+  if (keyColumn) {
+    reorderedHeaders.push(keyColumn)
+  }
+
+  // Add English column second (if present)
+  if (englishColumn) {
+    reorderedHeaders.push(englishColumn)
+  }
+
+  // Add remaining language columns in their original order
+  reorderedHeaders.push(...otherLanguageColumns)
+
+  return reorderedHeaders
+}
+
 export function parseCSV(content: string): CSVData {
   const result = Papa.parse(content, {
     header: true,
@@ -20,12 +48,26 @@ export function parseCSV(content: string): CSVData {
     throw new Error(`CSV parsing error: ${result.errors[0].message}`)
   }
 
-  const headers = result.meta.fields || []
-  const rows = result.data as CSVRow[]
+  const originalHeaders = result.meta.fields || []
+  const originalRows = result.data as CSVRow[]
+
+  // Apply English column priority reordering
+  const reorderedHeaders = reorderColumnsWithEnglishPriority(originalHeaders)
+
+  // Reorder the row data to match the new header order
+  const reorderedRows = originalRows.map(row => {
+    const reorderedRow: CSVRow = { Key: row.Key || '' }
+    reorderedHeaders.forEach(header => {
+      if (header.toLowerCase() !== 'key') {
+        reorderedRow[header] = row[header] || ''
+      }
+    })
+    return reorderedRow
+  })
 
   return {
-    headers,
-    rows
+    headers: reorderedHeaders,
+    rows: reorderedRows
   }
 }
 
@@ -75,7 +117,12 @@ export function jsonToCSV(
   translations: Record<string, TranslationData>,
   languages: Language[]
 ): string {
-  const headers = ['Key', ...languages.map(lang => lang.name)]
+  // Apply English priority to languages array
+  const englishLanguage = languages.find(lang => lang.name.toLowerCase() === 'english')
+  const otherLanguages = languages.filter(lang => lang.name.toLowerCase() !== 'english')
+  const reorderedLanguages = englishLanguage ? [englishLanguage, ...otherLanguages] : languages
+
+  const headers = ['Key', ...reorderedLanguages.map(lang => lang.name)]
   const rows: string[][] = []
 
   // Get all unique keys from all languages
@@ -88,7 +135,7 @@ export function jsonToCSV(
   for (const key of Array.from(allKeys).sort()) {
     const row = [key]
 
-    for (const language of languages) {
+    for (const language of reorderedLanguages) {
       const langCode = language.code
       const value = translations[langCode]?.[key] || ''
       row.push(value)

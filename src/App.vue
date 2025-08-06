@@ -379,6 +379,34 @@ function getLanguageName(code: string): string {
   return language ? language.name : code
 }
 
+// Utility function to reorder columns with English priority
+function reorderColumnsWithEnglishPriority(headers: string[]): string[] {
+  const keyColumn = headers.find(header => header.toLowerCase() === 'key')
+  const languageColumns = headers.filter(header => header.toLowerCase() !== 'key')
+
+  // Find English column (case-insensitive)
+  const englishColumn = languageColumns.find(header => header.toLowerCase() === 'english')
+  const otherLanguageColumns = languageColumns.filter(header => header.toLowerCase() !== 'english')
+
+  // Build the reordered headers array
+  const reorderedHeaders = []
+
+  // Add Key column first (if present)
+  if (keyColumn) {
+    reorderedHeaders.push(keyColumn)
+  }
+
+  // Add English column second (if present)
+  if (englishColumn) {
+    reorderedHeaders.push(englishColumn)
+  }
+
+  // Add remaining language columns in their original order
+  reorderedHeaders.push(...otherLanguageColumns)
+
+  return reorderedHeaders
+}
+
 // Helper function to merge multiple JSON files into CSV structure
 function mergeJSONFilesToCSV(uploads: { languageCode: string; data: TranslationData }[]): CSVData {
   // Get all unique translation keys from all files
@@ -394,23 +422,28 @@ function mergeJSONFilesToCSV(uploads: { languageCode: string; data: TranslationD
     languageData[languageName] = upload.data
   }
 
-  // Create headers: Key + language names
-  const languageNames = Object.keys(languageData).sort()
-  const headers = ['Key', ...languageNames]
+  // Create headers: Key + language names (without sorting to preserve original order)
+  const languageNames = Object.keys(languageData)
+  const originalHeaders = ['Key', ...languageNames]
 
-  // Create rows
+  // Apply English column priority reordering
+  const reorderedHeaders = reorderColumnsWithEnglishPriority(originalHeaders)
+
+  // Create rows with reordered columns
   const rows: CSVRow[] = Array.from(allKeys).sort().map(key => {
     const row: CSVRow = { Key: key }
 
-    // Add translation for each language
-    for (const languageName of languageNames) {
-      row[languageName] = languageData[languageName][key] || ''
-    }
+    // Add translation for each language in the reordered sequence
+    reorderedHeaders.forEach(header => {
+      if (header.toLowerCase() !== 'key') {
+        row[header] = languageData[header]?.[key] || ''
+      }
+    })
 
     return row
   })
 
-  return { headers, rows }
+  return { headers: reorderedHeaders, rows }
 }
 
 // Helper function to create merged JSON structure organized by language
