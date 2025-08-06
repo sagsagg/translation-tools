@@ -886,17 +886,61 @@ function rebuildDataFromFiles() {
       // Single JSON file
       translationStore.clearAllData()
       translationStore.setJSONData(primaryFile.data as TranslationData)
+
+      // Convert single JSON to CSV format for language management
+      const language = 'English' // Default language for single JSON files
+      const csvData: CSVData = {
+        headers: ['Key', language],
+        rows: Object.entries(primaryFile.data as TranslationData).map(([key, value]) => ({
+          Key: key,
+          [language]: value
+        }))
+      }
+      translationStore.setCSVData(csvData)
     } else {
       // Multiple JSON files - rebuild multi-language structure
       const multiLangData: Record<string, TranslationData> = {}
+      const successfulUploads: { languageCode: string; data: TranslationData }[] = []
+
       jsonFiles.forEach(file => {
         if (file.languageCode) {
           multiLangData[file.languageCode] = file.data as TranslationData
+          successfulUploads.push({
+            languageCode: file.languageCode,
+            data: file.data as TranslationData
+          })
         }
       })
 
+      // Clear previous data
       translationStore.clearAllData()
+
+      // Regenerate CSV data using the same logic as initial upload
+      const mergedCSVData = mergeJSONFilesToCSV(successfulUploads)
+
+      // Store both representations for DataViewer
+      translationStore.setCSVData(mergedCSVData)
       translationStore.setMultiLanguageJSONData(multiLangData)
+
+      // Update table languages based on remaining files
+      const remainingLanguageCodes = successfulUploads.map(upload => upload.languageCode)
+      const supportedLanguages = remainingLanguageCodes.map(code =>
+        SUPPORTED_LANGUAGES.find(sl => sl.code === code) ||
+        { code, name: code, nativeName: code }
+      )
+      languageStore.setTableLanguages(supportedLanguages)
+
+      // If no languages remain, clear language store
+      if (supportedLanguages.length === 0) {
+        languageStore.setTableLanguages([])
+      }
+
+      // Also store in multipleJSONData for reference
+      const newMultipleData: Record<string, TranslationData> = {}
+      for (const upload of successfulUploads) {
+        newMultipleData[upload.languageCode] = upload.data
+      }
+      translationStore.setMultipleJSONData(newMultipleData)
     }
   }
 }
