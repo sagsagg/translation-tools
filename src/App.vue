@@ -334,7 +334,6 @@ const {
 const {
   translationData,
   updateLanguageSelection,
-  exportToCSV,
   exportToMultipleJSON,
   clearAllData: clearMultiLanguageData
 } = useMultiLanguage()
@@ -744,30 +743,78 @@ function handleInputMethodChange(value: string | number) {
   uiStore.setInputMethod(String(value) as 'file' | 'text')
 }
 
+// Helper function to generate CSV content from CSVData
+function generateCSVContent(csvData: CSVData): string {
+  const rows = [csvData.headers, ...csvData.rows.map(row =>
+    csvData.headers.map(header => row[header] || '')
+  )]
+
+  return rows
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+}
+
+// Helper function to download CSV file
+function downloadCSVFile(content: string, filename: string) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 async function exportData(format: 'csv' | 'json') {
   try {
     if (format === 'csv') {
-      if (Object.keys(translationData.value).length > 0) {
-        await convertMultipleJSONToCSV(
-          translationData.value,
-          languageStore.selectedLanguages,
-          'translations.csv'
-        )
+      // Use translation store data instead of old composable data
+      const csvData = translationStore.csvData
+      const multiLanguageData = translationStore.multiLanguageJsonData
+
+      if (csvData && csvData.rows.length > 0) {
+        // Export CSV data directly from the store
+        const csvContent = generateCSVContent(csvData)
+        downloadCSVFile(csvContent, 'translations.csv')
+
         toast.success('CSV exported successfully', {
-          description: `Exported ${languageStore.selectedLanguages.length} languages to CSV`
+          description: `Exported ${csvData.rows.length} translation entries with ${csvData.headers.length - 1} languages`
         })
+      } else if (multiLanguageData && Object.keys(multiLanguageData).length > 0) {
+        // Convert multi-language JSON to CSV for export
+        const languages = languageStore.tableLanguages
+        if (languages.length > 0) {
+          await convertMultipleJSONToCSV(
+            multiLanguageData,
+            languages,
+            'translations.csv'
+          )
+          toast.success('CSV exported successfully', {
+            description: `Exported ${languages.length} languages to CSV`
+          })
+        } else {
+          throw new Error('No languages available for export')
+        }
       } else {
-        exportToCSV('translations.csv')
-        toast.success('CSV exported successfully')
+        throw new Error('No translation data available for export')
       }
     } else {
-      if (languageStore.selectedLanguages.length > 1) {
+      // JSON export logic
+      const multiLanguageData = translationStore.multiLanguageJsonData
+      const jsonData = translationStore.jsonData
+      const languages = languageStore.tableLanguages
+
+      if (multiLanguageData && Object.keys(multiLanguageData).length > 0 && languages.length > 1) {
+        // Export multiple JSON files
         exportToMultipleJSON('translations')
         toast.success('JSON files exported successfully', {
-          description: `Exported ${languageStore.selectedLanguages.length} separate JSON files`
+          description: `Exported ${languages.length} separate JSON files`
         })
-      } else if (translationStore.jsonData) {
-        const blob = new Blob([JSON.stringify(translationStore.jsonData, null, 2)], {
+      } else if (jsonData && Object.keys(jsonData).length > 0) {
+        // Export single JSON file
+        const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
           type: 'application/json'
         })
         const url = URL.createObjectURL(blob)
@@ -779,6 +826,8 @@ async function exportData(format: 'csv' | 'json') {
         document.body.removeChild(link)
         URL.revokeObjectURL(url)
         toast.success('JSON exported successfully')
+      } else {
+        throw new Error('No translation data available for export')
       }
     }
   } catch (error) {
