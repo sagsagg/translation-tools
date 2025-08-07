@@ -296,6 +296,7 @@ import type {
   CSVData,
   TranslationData,
   MultiLanguageTranslationData,
+  Language,
   LanguageSelection,
   CSVRow,
   ViewMode,
@@ -334,7 +335,6 @@ const {
 const {
   translationData,
   updateLanguageSelection,
-  exportToMultipleJSON,
   clearAllData: clearMultiLanguageData
 } = useMultiLanguage()
 
@@ -767,6 +767,134 @@ function downloadCSVFile(content: string, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+// Helper function to download JSON file
+function downloadJSONFile(data: TranslationData, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: 'application/json'
+  })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+// Helper function to convert CSV data to multi-language JSON
+function convertCSVToMultiLanguageJSON(csvData: CSVData): MultiLanguageTranslationData {
+  const result: MultiLanguageTranslationData = {}
+
+  // Get language columns (all headers except 'Key')
+  const languageColumns = csvData.headers.filter(header => header.toLowerCase() !== 'key')
+
+  // Create a mapping of language columns to language codes
+  const languageMapping: Record<string, string> = {}
+  languageColumns.forEach(languageColumn => {
+    // Try to find matching language by name (case-insensitive)
+    const language = SUPPORTED_LANGUAGES.find(sl =>
+      sl.name.toLowerCase() === languageColumn.toLowerCase()
+    )
+
+    if (language) {
+      languageMapping[languageColumn] = language.code
+    } else {
+      // If no match found, create a reasonable language code
+      // Convert "English" -> "en", "French" -> "fr", etc.
+      const commonLanguageCodes: Record<string, string> = {
+        'english': 'en',
+        'french': 'fr',
+        'german': 'de',
+        'spanish': 'es',
+        'italian': 'it',
+        'portuguese': 'pt',
+        'russian': 'ru',
+        'chinese': 'zh',
+        'chinese simplified': 'zh-CN',
+        'chinese traditional': 'zh-TW',
+        'japanese': 'ja',
+        'korean': 'ko',
+        'arabic': 'ar',
+        'hindi': 'hi',
+        'indonesian': 'id',
+        'dutch': 'nl',
+        'swedish': 'sv',
+        'norwegian': 'no',
+        'danish': 'da',
+        'finnish': 'fi'
+      }
+
+      const normalizedName = languageColumn.toLowerCase()
+      languageMapping[languageColumn] = commonLanguageCodes[normalizedName] || normalizedName
+    }
+  })
+
+  // Initialize language objects using proper language codes
+  Object.values(languageMapping).forEach(languageCode => {
+    result[languageCode] = {}
+  })
+
+  // Populate translations
+  csvData.rows.forEach(row => {
+    const key = row.Key || ''
+    if (key) {
+      languageColumns.forEach(languageColumn => {
+        const languageCode = languageMapping[languageColumn]
+        result[languageCode][key] = row[languageColumn] || ''
+      })
+    }
+  })
+
+  return result
+}
+
+// Helper function to convert CSV data to single JSON
+function convertCSVToSingleJSON(csvData: CSVData, language: Language): TranslationData {
+  const result: TranslationData = {}
+
+  // Find the language column
+  const languageColumn = csvData.headers.find(header =>
+    header.toLowerCase() !== 'key' &&
+    (header === language.name || header.toLowerCase() === language.code)
+  )
+
+  if (!languageColumn) {
+    // If no matching column found, use the first non-Key column
+    const firstLanguageColumn = csvData.headers.find(header => header.toLowerCase() !== 'key')
+    if (firstLanguageColumn) {
+      csvData.rows.forEach(row => {
+        const key = row.Key || ''
+        if (key) {
+          result[key] = row[firstLanguageColumn] || ''
+        }
+      })
+    }
+  } else {
+    csvData.rows.forEach(row => {
+      const key = row.Key || ''
+      if (key) {
+        result[key] = row[languageColumn] || ''
+      }
+    })
+  }
+
+  return result
+}
+
+// Helper function to export multiple JSON files from store data
+function exportMultipleJSONFromStore(
+  multiLanguageData: MultiLanguageTranslationData,
+  languages: Language[],
+  baseFilename: string
+) {
+  languages.forEach(language => {
+    const languageData = multiLanguageData[language.code] || {}
+    const filename = `${baseFilename}_${language.name.replace(/\s+/g, '_')}.json`
+    downloadJSONFile(languageData, filename)
+  })
+}
+
 async function exportData(format: 'csv' | 'json') {
   try {
     if (format === 'csv') {
@@ -801,31 +929,44 @@ async function exportData(format: 'csv' | 'json') {
         throw new Error('No translation data available for export')
       }
     } else {
-      // JSON export logic
+      // JSON export logic - handle all data sources
       const multiLanguageData = translationStore.multiLanguageJsonData
       const jsonData = translationStore.jsonData
+      const csvData = translationStore.csvData
       const languages = languageStore.tableLanguages
 
       if (multiLanguageData && Object.keys(multiLanguageData).length > 0 && languages.length > 1) {
-        // Export multiple JSON files
-        exportToMultipleJSON('translations')
+        // Export multiple JSON files from multi-language data
+        exportMultipleJSONFromStore(multiLanguageData, languages, 'translations')
         toast.success('JSON files exported successfully', {
           description: `Exported ${languages.length} separate JSON files`
         })
-      } else if (jsonData && Object.keys(jsonData).length > 0) {
-        // Export single JSON file
-        const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
-          type: 'application/json'
+      } else if (csvData && csvData.rows.length > 0 && languages.length > 1) {
+        // Convert CSV data to multiple JSON files
+        const convertedMultiLanguageData = convertCSVToMultiLanguageJSON(csvData)
+        exportMultipleJSONFromStore(convertedMultiLanguageData, languages, 'translations')
+        toast.success('JSON files exported successfully', {
+          description: `Exported ${languages.length} separate JSON files from CSV data`
         })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = 'translations.json'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
+      } else if (csvData && csvData.rows.length > 0 && languages.length === 1) {
+        // Convert CSV data to single JSON file
+        const convertedJSONData = convertCSVToSingleJSON(csvData, languages[0])
+        downloadJSONFile(convertedJSONData, 'translations.json')
+        toast.success('JSON exported successfully', {
+          description: 'Exported CSV data as JSON file'
+        })
+      } else if (jsonData && Object.keys(jsonData).length > 0) {
+        // Export single JSON file from existing JSON data
+        downloadJSONFile(jsonData, 'translations.json')
         toast.success('JSON exported successfully')
+      } else if (multiLanguageData && Object.keys(multiLanguageData).length > 0 && languages.length === 1) {
+        // Export single language from multi-language data
+        const singleLanguageCode = languages[0].code
+        const singleLanguageData = multiLanguageData[singleLanguageCode] || {}
+        downloadJSONFile(singleLanguageData, `translations_${languages[0].name}.json`)
+        toast.success('JSON exported successfully', {
+          description: `Exported ${languages[0].name} translations`
+        })
       } else {
         throw new Error('No translation data available for export')
       }
