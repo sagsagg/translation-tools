@@ -396,7 +396,6 @@ import {
   filterCSVByPluralMode,
   filterJSONByPluralMode,
   filterMultiLanguageJSONByPluralMode,
-  getPluralTranslationStats,
   hasAnyPluralTranslation
 } from '@/utils/pluralTranslations'
 

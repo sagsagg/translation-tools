@@ -4,7 +4,7 @@
  * Format: "singular form | plural form"
  */
 
-import type { CSVData, CSVRow } from '@/types'
+import type { CSVData } from '@/types'
 
 export interface PluralTranslation {
   singular: string
@@ -96,7 +96,7 @@ export function getPluralTranslationStats(data: Record<string, Record<string, st
   let totalTranslations = 0
   let pluralTranslations = 0
 
-  Object.entries(data).forEach(([key, translations]) => {
+  Object.entries(data).forEach(([_key, translations]) => {
     totalKeys++
     let hasPlural = false
 
