@@ -70,6 +70,30 @@
             @selection-change="handleLanguageSelectionChange"
           />
         </div>
+
+        <!-- Plural Translation Filter -->
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <label for="plural-filter" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Filter:
+            </label>
+            <Select v-model="pluralFilterMode">
+              <SelectTrigger id="plural-filter" class="w-40">
+                <SelectValue placeholder="All translations" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All translations</SelectItem>
+                <SelectItem value="plural-only">Plural only</SelectItem>
+                <SelectItem value="singular-only">Singular only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <!-- Plural Statistics -->
+          <div v-if="pluralStats.totalKeys > 0" class="text-xs text-gray-500 dark:text-gray-400">
+            {{ pluralStats.pluralKeys }} plural ({{ pluralStats.pluralPercentage }}%) of {{ pluralStats.totalKeys }} total
+          </div>
+        </div>
       </div>
     </div>
 
@@ -347,8 +371,15 @@ import { ref, computed, watch, defineAsyncComponent } from 'vue'
 import LanguageMultiSelect from './LanguageMultiSelect.vue'
 import { Input } from '@/components/ui/input'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import AdvancedSearchSheet from './AdvancedSearchSheet.vue'
-import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow, Language } from '@/types'
+import type { CSVData, TranslationData, MultiLanguageTranslationData, ViewMode, CSVRow, Language, PluralFilterMode } from '@/types'
 
 interface EditRowData {
   originalKey: string
@@ -361,6 +392,13 @@ import { useSearch } from '@/composables/useSearch'
 import { memoizedTransforms } from '@/utils/memoization'
 import { useTranslationStore, useLanguageStore, storeToRefs } from '@/stores'
 import { SUPPORTED_LANGUAGES } from '@/constants/languages'
+import {
+  filterCSVByPluralMode,
+  filterJSONByPluralMode,
+  filterMultiLanguageJSONByPluralMode,
+  getPluralTranslationStats,
+  hasAnyPluralTranslation
+} from '@/utils/pluralTranslations'
 
 
 interface Props {
@@ -460,6 +498,9 @@ function initializeStoreData() {
 
 const currentView = ref<ViewMode>(props.defaultView)
 const selectedLanguages = ref<string[]>([])
+
+// Plural translation filter state
+const pluralFilterMode = ref<PluralFilterMode>('all')
 
 // Edit row dialog state
 const isEditRowDialogOpen = ref(false)
@@ -616,6 +657,12 @@ const displayData = computed(() => {
         return row
       })
     }
+
+    // Apply plural filtering to multi-language JSON
+    json = filterMultiLanguageJSONByPluralMode(json as MultiLanguageTranslationData, pluralFilterMode.value)
+
+    // Apply plural filtering to CSV
+    csv = filterCSVByPluralMode(csv, pluralFilterMode.value)
   } else if (currentCSVData) {
     csv = currentCSVData
 
@@ -625,11 +672,20 @@ const displayData = computed(() => {
       csv = memoizedTransforms.filterCSV(currentCSVData, selectedLanguages.value)
     }
 
+    // Apply plural filtering to CSV
+    csv = filterCSVByPluralMode(csv, pluralFilterMode.value)
+
     // Convert CSV to JSON for JSON view (use first selected language or first available)
     const targetLanguage = selectedLanguages.value.length > 0 ? selectedLanguages.value[0] : availableLanguages.value[0]
-    json = targetLanguage ? csvToJSON(currentCSVData, targetLanguage) : {}
+    json = targetLanguage ? csvToJSON(csv, targetLanguage) : {}
+
+    // Apply plural filtering to JSON
+    json = filterJSONByPluralMode(json as Record<string, string>, pluralFilterMode.value)
   } else if (currentJSONData) {
     json = currentJSONData
+
+    // Apply plural filtering to JSON
+    json = filterJSONByPluralMode(json as Record<string, string>, pluralFilterMode.value)
 
     // Convert JSON to CSV for table view (always show English for JSON files)
     const language = 'English'
@@ -640,6 +696,9 @@ const displayData = computed(() => {
         [language]: value
       }))
     }
+
+    // Apply plural filtering to CSV
+    csv = filterCSVByPluralMode(csv, pluralFilterMode.value)
   } else {
     csv = { headers: [], rows: [] }
     json = {}
@@ -651,6 +710,43 @@ const displayData = computed(() => {
   // Caching can be implemented with a separate watcher if needed for performance
 
   return result
+})
+
+// Computed property for plural translation statistics
+const pluralStats = computed(() => {
+  const { csv } = displayData.value
+  if (!csv || csv.rows.length === 0) {
+    return {
+      totalKeys: 0,
+      pluralKeys: 0,
+      singularKeys: 0,
+      pluralPercentage: 0
+    }
+  }
+
+  const totalKeys = csv.rows.length
+  let pluralKeys = 0
+
+  csv.rows.forEach(row => {
+    // Get all translation values (excluding the Key column)
+    const translations: Record<string, string> = {}
+    csv.headers.forEach(header => {
+      if (header.toLowerCase() !== 'key') {
+        translations[header] = row[header] || ''
+      }
+    })
+
+    if (hasAnyPluralTranslation(translations)) {
+      pluralKeys++
+    }
+  })
+
+  return {
+    totalKeys,
+    pluralKeys,
+    singularKeys: totalKeys - pluralKeys,
+    pluralPercentage: totalKeys > 0 ? Math.round((pluralKeys / totalKeys) * 100) : 0
+  }
 })
 
 // Watch for prop changes and initialize store data (including initial mount)

@@ -23,6 +23,15 @@ export interface CSVData {
 // File formats
 export type FileFormat = 'json' | 'csv'
 
+// Plural translation types
+export interface PluralTranslation {
+  singular: string
+  plural: string
+  original: string
+}
+
+export type PluralFilterMode = 'all' | 'plural-only' | 'singular-only'
+
 // Discriminated union for better type safety
 export type FileUploadResult =
   | {

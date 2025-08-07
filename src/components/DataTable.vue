@@ -121,9 +121,18 @@
                   v-if="header.toLowerCase() === 'key'"
                   class="font-mono text-sm font-medium text-primary table-cell-content"
                 >
-                  <span
-                    v-html="highlightText(row[header] || '', localSearchQuery)"
-                  />
+                  <div class="flex items-center gap-2">
+                    <span
+                      v-html="highlightText(row[header] || '', localSearchQuery)"
+                    />
+                    <Badge
+                      v-if="hasRowPluralTranslations(row)"
+                      variant="secondary"
+                      class="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700"
+                    >
+                      Plural
+                    </Badge>
+                  </div>
                 </div>
                 <div
                   v-else
@@ -229,6 +238,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -239,6 +249,7 @@ import {
 
 import type { CSVData, CSVRow, SortDirection, Language } from '@/types'
 import { highlightText } from '@/utils'
+import { hasAnyPluralTranslation } from '@/utils/pluralTranslations'
 
 interface Props {
   data: CSVData
@@ -320,6 +331,19 @@ const visiblePages = computed(() => {
 
   return pages
 })
+
+// Function to check if a row has any plural translations
+function hasRowPluralTranslations(row: CSVRow): boolean {
+  // Get all translation values (excluding the Key column)
+  const translations: Record<string, string> = {}
+  headers.value.forEach(header => {
+    if (header.toLowerCase() !== 'key') {
+      translations[header] = row[header] || ''
+    }
+  })
+
+  return hasAnyPluralTranslation(translations)
+}
 
 function handleSort(column: string) {
   if (sortColumn.value === column) {
